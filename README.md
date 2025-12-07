@@ -17,6 +17,7 @@ A real-time speech-to-text application built in Go that captures microphone audi
 - ✅ **Adaptive Buffering** - Automatic buffer sizing based on model complexity
 - ✅ **Device Detection** - Auto-detect and list available microphones
 - ✅ **CLI Tools** - Model selection, downloads, default configuration
+- ✅ **Multiple Output Formats** - JSON, plain text, or interactive console output
 
 ## Quick Start
 
@@ -88,6 +89,21 @@ A real-time speech-to-text application built in Go that captures microphone audi
 
 # Auto-download if missing (no prompt)
 ./build/diaz --auto-download
+```
+
+### Output Formats
+```bash
+# Default console output (interactive)
+./build/diaz
+
+# JSON output to stdout
+./build/diaz --format json
+
+# JSON output to file
+./build/diaz --format json --output transcription.json
+
+# Plain text output to file
+./build/diaz --format text --output transcription.txt
 ```
 
 ### Utility
@@ -169,8 +185,10 @@ diaz/
 - [x] Adaptive buffering for model sizes
 
 ### 🚧 Phase 3: Enhancement (IN PROGRESS)
+**Completed:**
+- [x] Multiple output formats (JSON, plain text) with extensible interface
+
 **Next Priority Items:**
-- [ ] Multiple output formats (SRT, VTT, plain text), keep generic but implement json only for now
 - [ ] Voice Activity Detection (VAD) for better pause detection
 - [ ] Timestamp support in transcriptions
 - [ ] Configuration file support (~/.diazrc)

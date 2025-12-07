@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/emmett/diaz/internal/audio"
 	"github.com/emmett/diaz/internal/models"
@@ -31,6 +32,8 @@ var (
 	modelName       = flag.String("model", "", "Use a specific model (default: "+models.DefaultModelName+")")
 	selectModel     = flag.Bool("select-model", false, "Interactively select a model to use")
 	setDefault      = flag.String("set-default", "", "Set a model as the default")
+	outputFormat    = flag.String("format", "console", "Output format: console, json, text")
+	outputFile      = flag.String("output", "", "Output file (default: stdout)")
 	showVersion     = flag.Bool("version", false, "Show version information")
 	autoDownload    = flag.Bool("auto-download", false, "Automatically download default model if not found (no prompt)")
 )
@@ -449,15 +452,59 @@ func run() error {
 		return fmt.Errorf("failed to create capturer: %w", err)
 	}
 
-	// Initialize output
-	out := output.DefaultConsoleOutput()
-	out.Info("Speech recognition ready!")
-	out.Info(fmt.Sprintf("Listening on %s (sample rate: %d Hz, channels: %d)",
+	// Initialize output formatter
+	var formatter output.Formatter
+	var outFile *os.File
+
+	// Determine output writer
+	writer := os.Stdout
+	if *outputFile != "" {
+		var fileErr error
+		outFile, fileErr = os.Create(*outputFile)
+		if fileErr != nil {
+			return fmt.Errorf("failed to create output file: %w", fileErr)
+		}
+		defer outFile.Close()
+		writer = outFile
+	}
+
+	// Create formatter based on format flag
+	switch strings.ToLower(*outputFormat) {
+	case "json":
+		formatter = output.NewJSONFormatter(writer)
+	case "text":
+		formatter = output.NewPlainTextFormatter(writer)
+	case "console":
+		// For console mode, we'll use the console output directly
+		formatter = nil
+	default:
+		return fmt.Errorf("unknown output format: %s (valid: console, json, text)", *outputFormat)
+	}
+	if formatter != nil {
+		defer formatter.Close()
+	}
+
+	// Console output for status messages (always to stderr when using file output)
+	statusOut := output.DefaultConsoleOutput()
+	if *outputFile != "" {
+		// Redirect status messages to stderr when output goes to file
+		statusOut = output.NewConsoleOutput(output.ConsoleConfig{
+			ShowTimestamp: true,
+			Writer:        os.Stderr,
+		})
+	}
+
+	statusOut.Info("Speech recognition ready!")
+	statusOut.Info(fmt.Sprintf("Listening on %s (sample rate: %d Hz, channels: %d)",
 		defaultDevice.Name, audioConfig.SampleRate, audioConfig.Channels))
-	out.Info("Speak into your microphone. Press Ctrl+C to stop.")
-	fmt.Println()
-	fmt.Println("Transcription:")
-	fmt.Println("=" + strings.Repeat("=", 70))
+	statusOut.Info("Speak into your microphone. Press Ctrl+C to stop.")
+
+	// Only show transcription header in console mode
+	if formatter == nil {
+		fmt.Println()
+		fmt.Println("Transcription:")
+		fmt.Println("=" + strings.Repeat("=", 70))
+	}
 
 	// Set up context with cancellation
 	ctx, cancel := context.WithCancel(context.Background())
@@ -490,16 +537,33 @@ func run() error {
 			// Get final result
 			finalResult, err := engine.FinalResult()
 			if err == nil && finalResult.Text != "" {
-				fmt.Printf("\n[FINAL] %s", finalResult.Text)
-				if finalResult.Confidence > 0 {
-					fmt.Printf(" (confidence: %.2f)", finalResult.Confidence)
+				if formatter != nil {
+					// Write final result to formatter
+					transcriptionCount++
+					formatter.WriteResult(output.TranscriptionResult{
+						Index:      transcriptionCount,
+						Text:       finalResult.Text,
+						Confidence: finalResult.Confidence,
+						Timestamp:  time.Now(),
+						Partial:    false,
+					})
+				} else {
+					// Console output
+					fmt.Printf("\n[FINAL] %s", finalResult.Text)
+					if finalResult.Confidence > 0 {
+						fmt.Printf(" (confidence: %.2f)", finalResult.Confidence)
+					}
+					fmt.Println()
 				}
-				fmt.Println()
 			}
 
-			fmt.Println("\n" + strings.Repeat("=", 72))
-			out.Info("Transcription stopped")
-			out.Info(fmt.Sprintf("Total transcriptions: %d", transcriptionCount))
+			if formatter != nil {
+				formatter.Flush()
+			} else {
+				fmt.Println("\n" + strings.Repeat("=", 72))
+			}
+			statusOut.Info("Transcription stopped")
+			statusOut.Info(fmt.Sprintf("Total transcriptions: %d", transcriptionCount))
 			return nil
 
 		case sample, ok := <-capturer.Samples():
@@ -510,7 +574,7 @@ func run() error {
 			// Process audio through STT engine
 			result, err := engine.ProcessAudio(ctx, sample.Data)
 			if err != nil {
-				out.Error(fmt.Sprintf("STT error: %v", err))
+				statusOut.Error(fmt.Sprintf("STT error: %v", err))
 				continue
 			}
 
@@ -521,25 +585,42 @@ func run() error {
 			// Handle partial results (real-time feedback)
 			if result.Partial && result.Text != "" {
 				if result.Text != lastPartialText {
-					// Clear previous partial result and show new one
-					fmt.Printf("\r%s", strings.Repeat(" ", 80))
-					fmt.Printf("\r[partial] %s", result.Text)
+					if formatter != nil {
+						// Write partial result to formatter
+						formatter.WritePartial(result.Text)
+					} else {
+						// Console output: clear previous partial result and show new one
+						fmt.Printf("\r%s", strings.Repeat(" ", 80))
+						fmt.Printf("\r[partial] %s", result.Text)
+					}
 					lastPartialText = result.Text
 				}
 			}
 
 			// Handle final results (complete phrases/sentences)
 			if !result.Partial && result.Text != "" {
-				// Clear partial result line
-				fmt.Printf("\r%s\r", strings.Repeat(" ", 80))
-
-				// Print final transcription
 				transcriptionCount++
-				fmt.Printf("[%d] %s", transcriptionCount, result.Text)
-				if result.Confidence > 0 {
-					fmt.Printf(" (confidence: %.2f)", result.Confidence)
+
+				if formatter != nil {
+					// Write to formatter
+					formatter.WriteResult(output.TranscriptionResult{
+						Index:      transcriptionCount,
+						Text:       result.Text,
+						Confidence: result.Confidence,
+						Timestamp:  time.Now(),
+						Partial:    false,
+					})
+				} else {
+					// Console output: clear partial result line
+					fmt.Printf("\r%s\r", strings.Repeat(" ", 80))
+
+					// Print final transcription
+					fmt.Printf("[%d] %s", transcriptionCount, result.Text)
+					if result.Confidence > 0 {
+						fmt.Printf(" (confidence: %.2f)", result.Confidence)
+					}
+					fmt.Println()
 				}
-				fmt.Println()
 
 				lastPartialText = ""
 			}
@@ -548,7 +629,7 @@ func run() error {
 			if !ok {
 				return nil
 			}
-			out.Error(fmt.Sprintf("Capture error: %v", err))
+			statusOut.Error(fmt.Sprintf("Capture error: %v", err))
 		}
 	}
 }
