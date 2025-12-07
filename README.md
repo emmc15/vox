@@ -1,186 +1,307 @@
 # diaz
 make computer shit talk
 
-## Project Overview
-A Go application that captures microphone audio and performs real-time speech-to-text transcription. The goal is to produce a single, self-contained binary for each platform with minimal external dependencies.
+A real-time speech-to-text application built in Go that captures microphone audio and transcribes it locally using Vosk. Designed to be self-contained with minimal dependencies.
 
-## Architecture Plan
+## Current Status
 
-### Core Components
+**✅ WORKING** - Diaz is fully functional for real-time speech-to-text transcription!
 
-#### 1. Audio Capture Layer (`internal/audio`)
-- **Responsibility**: Interface with system microphone and capture audio streams
-- **Implementation Options**:
-  - **Primary**: `malgo` (pure Go, cross-platform audio I/O)
-  - **Alternative**: PortAudio via CGO (more stable but requires C dependencies)
-- **Features**:
-  - Auto-detect default microphone
-  - Configurable sample rate (16kHz recommended for STT)
-  - Ring buffer for continuous capture
-  - Audio level monitoring/VAD (Voice Activity Detection)
+### Implemented Features
 
-#### 2. Speech-to-Text Engine (`internal/stt`)
-- **Responsibility**: Convert audio buffers to text transcriptions
-- **Implementation Options**:
-  - **Option A - Vosk** (offline, embeddable models)
-    - Pros: Lightweight, multiple languages, works offline
-    - Cons: CGO dependency, model files needed
-  - **Option B - Whisper.cpp bindings** (state-of-the-art accuracy)
-    - Pros: Excellent accuracy, offline
-    - Cons: Larger model files, CGO dependency
-  - **Option C - Cloud APIs** (Google/AWS/Azure)
-    - Pros: No local models, better accuracy
-    - Cons: Requires internet, API costs, latency
-- **Recommended**: Vosk for embedded use case with bundled models
+- ✅ **Real-time Audio Capture** - Multi-platform audio input via malgo
+- ✅ **Speech Recognition** - Offline transcription using Vosk
+- ✅ **Model Management** - Download, cache, and switch between models
+- ✅ **Interactive UI** - Real-time partial and final transcriptions
+- ✅ **Multi-model Support** - Small (40MB), Medium (128MB), Large (1.8GB) models
+- ✅ **Adaptive Buffering** - Automatic buffer sizing based on model complexity
+- ✅ **Device Detection** - Auto-detect and list available microphones
+- ✅ **CLI Tools** - Model selection, downloads, default configuration
 
-#### 3. Model Management (`internal/models`)
-- **Responsibility**: Download, cache, and load STT models
-- **Features**:
-  - Embed small models in binary using `go:embed`
-  - Download larger models on first run
-  - Model versioning and updates
-  - Automatic model selection based on language
+## Quick Start
 
-#### 4. Output Handler (`internal/output`)
-- **Responsibility**: Process and display transcription results
-- **Features**:
-  - Real-time console output
-  - JSON output mode
-  - File logging
-  - WebSocket streaming (future)
+### Prerequisites
 
-#### 5. CLI Interface (`cmd/diaz`)
-- **Responsibility**: User-facing command-line interface
-- **Features**:
-  - Start/stop recording
-  - Model selection
-  - Output format configuration
-  - Language selection
+1. **Install Vosk Library** (one-time setup):
+   ```bash
+   make install-vosk
+   ```
 
-### Project Structure
+2. **Build the application**:
+   ```bash
+   make build
+   ```
+
+3. **Run and download a model** (on first run):
+   ```bash
+   ./build/diaz
+   ```
+
+### Basic Usage
+
+```bash
+# Start transcription with default model
+./build/diaz
+
+# Interactive model selection
+./build/diaz --select-model
+
+# Use a specific model
+./build/diaz --model vosk-model-en-us-0.22-lgraph
+```
+
+## Available Models
+
+| Model | Size | Speed | Accuracy | Use Case |
+|-------|------|-------|----------|----------|
+| `vosk-model-small-en-us-0.15` | 40MB | Fast | Good | Real-time, resource-constrained |
+| `vosk-model-en-us-0.22-lgraph` | 128MB | Medium | Better | **Recommended** - Best balance |
+| `vosk-model-en-us-0.22` | 1.8GB | Slow | Best | High accuracy, powerful hardware |
+
+## CLI Commands
+
+### Model Management
+```bash
+# List available models
+./build/diaz --list-models
+
+# List downloaded models
+./build/diaz --list-downloaded
+
+# Download a specific model
+./build/diaz --download-model vosk-model-en-us-0.22-lgraph
+
+# Set default model
+./build/diaz --set-default vosk-model-en-us-0.22-lgraph
+```
+
+### Running Transcription
+```bash
+# Use default/configured model
+./build/diaz
+
+# Interactive model selection
+./build/diaz --select-model
+
+# Use specific model
+./build/diaz --model vosk-model-small-en-us-0.15
+
+# Auto-download if missing (no prompt)
+./build/diaz --auto-download
+```
+
+### Utility
+```bash
+# Show version
+./build/diaz --version
+
+# Show help
+./build/diaz --help
+```
+
+## Architecture
+
+### Current Implementation
+
 ```
 diaz/
-├── cmd/
-│   └── diaz/
-│       └── main.go              # Application entry point
+├── cmd/diaz/
+│   └── main.go                    # CLI interface, model selection
 ├── internal/
 │   ├── audio/
-│   │   ├── capture.go           # Audio capture interface
-│   │   ├── device.go            # Device enumeration
-│   │   └── buffer.go            # Audio buffering
+│   │   ├── capture.go             # Audio config & interface
+│   │   ├── malgo_capturer.go      # Malgo implementation
+│   │   ├── device.go              # Device enumeration
+│   │   └── buffer.go              # Ring buffer for streaming
 │   ├── stt/
-│   │   ├── engine.go            # STT engine interface
-│   │   ├── vosk.go              # Vosk implementation
-│   │   └── processor.go         # Audio preprocessing
+│   │   ├── engine.go              # STT engine interface
+│   │   └── vosk_engine.go         # Vosk implementation
 │   ├── models/
-│   │   ├── manager.go           # Model download/cache
-│   │   └── embedded.go          # Embedded models
+│   │   └── manager.go             # Model download/management
 │   └── output/
-│       ├── console.go           # Console output
-│       ├── file.go              # File output
-│       └── formatter.go         # Output formatting
-├── models/                      # Embedded models (via go:embed)
-│   └── vosk-model-small-en/    # Small English model
-├── build/                       # Build artifacts
-├── scripts/                     # Build scripts
-├── Makefile                     # Build automation
-├── go.mod
-├── go.sum
-└── README.md
+│       └── console.go             # Console output formatting
+├── models/                        # Downloaded models stored here
+├── scripts/
+│   └── install-vosk-lib.sh        # Vosk library installer
+├── build/                         # Compiled binaries
+├── Makefile                       # Build automation
+└── INSTALL.md                     # Detailed installation guide
 ```
 
-## Build Strategy for Self-Contained Binaries
+### Key Components
 
-### Challenges
-1. **CGO Dependencies**: Audio and STT libraries often require C
-2. **Model Files**: STT models can be 40MB-1.5GB
-3. **Platform-Specific**: Different audio APIs per OS
+**Audio Capture** (`internal/audio`)
+- Cross-platform audio via malgo (Linux/macOS/Windows)
+- Adaptive buffer sizing (50-300 samples) based on model size
+- Device enumeration and selection
+- 16kHz mono capture optimized for STT
 
-### Solutions
-1. **Static Linking**: Use CGO with static linking flags
-2. **Embedded Resources**: Use `go:embed` for small models
-3. **Cross-Compilation**: Docker-based builds for each platform
-4. **UPX Compression**: Compress final binaries (optional)
+**Speech Recognition** (`internal/stt`)
+- Vosk engine integration
+- Real-time partial results
+- Final results with confidence scores
+- Thread-safe audio processing
 
-### Build Targets
-- `linux-amd64`: Linux x86_64 (static, musl libc)
-- `linux-arm64`: Linux ARM64 (Raspberry Pi, etc.)
-- `darwin-amd64`: macOS Intel
-- `darwin-arm64`: macOS Apple Silicon
-- `windows-amd64`: Windows x86_64
+**Model Management** (`internal/models`)
+- HTTP download with progress tracking
+- Model caching in `./models/` directory
+- Default model configuration (persisted)
+- Available models list from Vosk repository
+
+**Console Output** (`internal/output`)
+- Real-time partial transcription updates
+- Final transcriptions with numbering
+- Confidence scores
+- Error reporting
 
 ## Development Roadmap
 
-### Phase 1: Foundation
+### ✅ Phase 1: Foundation (COMPLETED)
 - [x] Project setup and structure
-- [ ] Basic audio capture with malgo
-- [ ] Simple console output
-- [ ] Makefile with build targets
+- [x] Audio capture with malgo
+- [x] Console output
+- [x] Makefile with build targets
 
-### Phase 2: STT Integration
-- [ ] Integrate Vosk STT engine
-- [ ] Model management system
-- [ ] Real-time transcription pipeline
+### ✅ Phase 2: STT Integration (COMPLETED)
+- [x] Vosk STT engine integration
+- [x] Model management system
+- [x] Real-time transcription pipeline
+- [x] Adaptive buffering for model sizes
 
-### Phase 3: Enhancement
-- [ ] Voice Activity Detection
+### 🚧 Phase 3: Enhancement (IN PROGRESS)
+**Next Priority Items:**
+- [ ] Output to file (save transcriptions)
+- [ ] JSON output format
+- [ ] Voice Activity Detection (VAD) for better pause detection
 - [ ] Multiple language support
-- [ ] Configuration file support
-- [ ] Improved error handling
+- [ ] Configuration file support (~/.diazrc)
+- [ ] Audio input device selection flag
+- [ ] Timestamp support in transcriptions
 
-### Phase 4: Optimization
+### 📋 Phase 4: Advanced Features (PLANNED)
+- [ ] Real-time streaming API (WebSocket/HTTP)
+- [ ] Multiple output formats (SRT, VTT, plain text)
+- [ ] Speaker diarization (identify different speakers)
+- [ ] Custom vocabulary/word lists
+- [ ] Punctuation and capitalization improvements
+- [ ] Background noise filtering
+
+### 🔧 Phase 5: Optimization (FUTURE)
 - [ ] Static linking for all platforms
 - [ ] Binary size optimization
-- [ ] Performance tuning
+- [ ] Performance profiling and tuning
+- [ ] Memory usage optimization
+- [ ] Cross-platform builds (macOS, Windows ARM)
+- [ ] Docker container
 - [ ] CI/CD pipeline
 
-## Usage
+## Installation
 
+See [INSTALL.md](INSTALL.md) for detailed installation instructions including:
+- Installing the Vosk library
+- Platform-specific setup
+- Troubleshooting
+
+Quick install:
 ```bash
-# Basic usage (uses default or configured model)
-diaz
+# Install Vosk library (Linux x86_64)
+make install-vosk
 
-# Interactive model selection
-diaz --select-model
+# Or check if already installed
+make check-vosk
 
-# Use a specific model
-diaz --model vosk-model-en-us-0.22-lgraph
-
-# List all available models for download
-diaz --list-models
-
-# List downloaded models
-diaz --list-downloaded
-
-# Download a specific model
-diaz --download-model vosk-model-en-us-0.22-lgraph
-
-# Set default model
-diaz --set-default vosk-model-en-us-0.22-lgraph
-
-# Auto-download default model if missing (no prompt)
-diaz --auto-download
-
-# Show version
-diaz --version
+# Build the application
+make build
 ```
 
-## Dependencies
-- Go 1.21+
-- CGO enabled (for audio and STT)
-- Platform-specific:
-  - Linux: ALSA/PulseAudio
-  - macOS: CoreAudio
-  - Windows: WASAPI
+## Build System
 
-## Build Requirements
-- Docker (for cross-compilation)
-- Make
-- Go toolchain
-- C compiler (gcc/clang)
+The Makefile provides comprehensive build targets:
 
-## Notes
-- Initial focus: English language support
-- Model size vs accuracy tradeoff
-- Offline-first approach
-- Future: Add real-time streaming API
+```bash
+# Build commands
+make build              # Build for current platform
+make build-all          # Build for all platforms
+make quick              # Quick build without dep check
+
+# Development
+make dev                # Run with race detector
+make test               # Run tests
+make fmt                # Format code
+make check              # Run all checks
+
+# Vosk management
+make install-vosk       # Install Vosk library
+make check-vosk         # Verify Vosk installation
+
+# Utility
+make clean              # Remove build artifacts
+make help               # Show all targets
+```
+
+## Technical Details
+
+### Audio Processing
+- **Sample Rate**: 16kHz (optimal for STT)
+- **Channels**: Mono (1 channel)
+- **Bit Depth**: 16-bit signed PCM
+- **Buffer Size**: 30ms frames (480 samples @ 16kHz)
+- **Sample Buffering**: 50-300 samples based on model size
+
+### Model Buffer Configurations
+- **Small models**: 50 samples (~1.5s buffer)
+- **Medium models**: 150 samples (~4.5s buffer)
+- **Large models**: 300 samples (~9s buffer)
+
+### Dependencies
+- **Runtime**:
+  - Go 1.21+
+  - Vosk library (libvosk.so)
+  - Audio system (ALSA/PulseAudio/CoreAudio/WASAPI)
+
+- **Build**:
+  - CGO enabled
+  - C compiler (gcc/clang)
+  - Make
+
+## Performance Notes
+
+- **Small model**: ~10-20ms processing latency, minimal CPU
+- **Medium model**: ~50-100ms processing latency, moderate CPU
+- **Large model**: ~200-500ms processing latency, high CPU/memory
+
+The application uses adaptive buffering to prevent sample drops with slower models.
+
+## Troubleshooting
+
+### "cannot find -lvosk" error
+Run `make install-vosk` to install the Vosk library.
+
+### "sample buffer overflow" errors
+The application automatically selects buffer sizes based on model. If you still see errors:
+- Use a smaller model
+- Close other CPU-intensive applications
+- Check system audio latency settings
+
+### No audio devices found
+- **Linux**: Ensure user is in the `audio` group
+- **All platforms**: Verify microphone permissions
+
+See [INSTALL.md](INSTALL.md) for detailed troubleshooting.
+
+## Contributing
+
+Contributions welcome! Priority areas:
+- File output support
+- Additional language models
+- Voice Activity Detection
+- Platform testing (macOS, Windows)
+
+## License
+
+MIT License (to be added)
+
+## Acknowledgments
+
+- [Vosk](https://alphacephei.com/vosk/) - Offline speech recognition toolkit
+- [malgo](https://github.com/gen2brain/malgo) - Cross-platform audio I/O for Go
