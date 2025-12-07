@@ -18,6 +18,7 @@ A real-time speech-to-text application built in Go that captures microphone audi
 - ✅ **Device Detection** - Auto-detect and list available microphones
 - ✅ **CLI Tools** - Model selection, downloads, default configuration
 - ✅ **Multiple Output Formats** - JSON, plain text, or interactive console output
+- ✅ **Voice Activity Detection** - Energy-based VAD for automatic pause handling
 
 ## Quick Start
 
@@ -106,6 +107,18 @@ A real-time speech-to-text application built in Go that captures microphone audi
 ./build/diaz --format text --output transcription.txt
 ```
 
+### Voice Activity Detection
+```bash
+# Enable VAD for automatic pause detection
+./build/diaz --vad
+
+# Enable VAD with custom sensitivity (lower=more sensitive)
+./build/diaz --vad --vad-threshold 0.005
+
+# VAD with JSON output
+./build/diaz --vad --format json --output transcription.json
+```
+
 ### Utility
 ```bash
 # Show version
@@ -187,9 +200,9 @@ diaz/
 ### 🚧 Phase 3: Enhancement (IN PROGRESS)
 **Completed:**
 - [x] Multiple output formats (JSON, plain text) with extensible interface
+- [x] Voice Activity Detection (VAD) for better pause detection
 
 **Next Priority Items:**
-- [ ] Voice Activity Detection (VAD) for better pause detection
 - [ ] Timestamp support in transcriptions
 - [ ] Configuration file support (~/.diazrc)
 - [ ] Audio input device selection flag

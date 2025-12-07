@@ -34,6 +34,8 @@ var (
 	setDefault      = flag.String("set-default", "", "Set a model as the default")
 	outputFormat    = flag.String("format", "console", "Output format: console, json, text")
 	outputFile      = flag.String("output", "", "Output file (default: stdout)")
+	enableVAD       = flag.Bool("vad", false, "Enable Voice Activity Detection for better pause handling")
+	vadThreshold    = flag.Float64("vad-threshold", 0.01, "VAD energy threshold (0.001-0.1, lower=more sensitive)")
 	showVersion     = flag.Bool("version", false, "Show version information")
 	autoDownload    = flag.Bool("auto-download", false, "Automatically download default model if not found (no prompt)")
 )
@@ -526,6 +528,15 @@ func run() error {
 	}
 	defer capturer.Stop()
 
+	// Initialize VAD if enabled
+	var vad *audio.VAD
+	if *enableVAD {
+		vadConfig := audio.DefaultVADConfig()
+		vadConfig.EnergyThreshold = *vadThreshold
+		vad = audio.NewVAD(vadConfig)
+		statusOut.Info(fmt.Sprintf("Voice Activity Detection enabled (threshold: %.4f)", *vadThreshold))
+	}
+
 	// Track state
 	var lastPartialText string
 	var transcriptionCount int
@@ -569,6 +580,57 @@ func run() error {
 		case sample, ok := <-capturer.Samples():
 			if !ok {
 				return nil
+			}
+
+			// Process VAD if enabled
+			if vad != nil {
+				isSpeaking, speechStarted, speechEnded := vad.ProcessFrame(sample.Data)
+
+				// Handle speech start
+				if speechStarted && formatter == nil {
+					fmt.Printf("\n[Speech detected]\n")
+				}
+
+				// Handle speech end - finalize current utterance
+				if speechEnded {
+					if formatter == nil {
+						fmt.Printf("\n[Silence detected - finalizing]\n")
+					}
+
+					// Get final result for this utterance
+					finalResult, err := engine.FinalResult()
+					if err == nil && finalResult.Text != "" {
+						transcriptionCount++
+
+						if formatter != nil {
+							formatter.WriteResult(output.TranscriptionResult{
+								Index:      transcriptionCount,
+								Text:       finalResult.Text,
+								Confidence: finalResult.Confidence,
+								Timestamp:  time.Now(),
+								Partial:    false,
+							})
+						} else {
+							// Clear partial text
+							fmt.Printf("\r%s\r", strings.Repeat(" ", 80))
+							fmt.Printf("[%d] %s", transcriptionCount, finalResult.Text)
+							if finalResult.Confidence > 0 {
+								fmt.Printf(" (confidence: %.2f)", finalResult.Confidence)
+							}
+							fmt.Println()
+						}
+					}
+
+					// Reset for next utterance
+					engine.Reset()
+					lastPartialText = ""
+					continue
+				}
+
+				// Skip processing during silence
+				if !isSpeaking {
+					continue
+				}
 			}
 
 			// Process audio through STT engine
