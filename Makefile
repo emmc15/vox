@@ -25,6 +25,8 @@ LDFLAGS := -s -w \
 
 # CGO flags for static linking
 CGO_ENABLED := 1
+CGO_CFLAGS := -I/usr/local/include
+CGO_LDFLAGS := -L/usr/local/lib -lvosk
 CGO_LDFLAGS_LINUX := -static
 CGO_LDFLAGS_DARWIN :=
 CGO_LDFLAGS_WINDOWS := -static
@@ -66,6 +68,8 @@ build: deps
 	@echo "$(COLOR_BLUE)Building $(APP_NAME) for $(GOOS)/$(GOARCH)...$(COLOR_RESET)"
 	@mkdir -p $(BUILD_DIR)
 	CGO_ENABLED=$(CGO_ENABLED) \
+	CGO_CFLAGS="$(CGO_CFLAGS)" \
+	CGO_LDFLAGS="$(CGO_LDFLAGS)" \
 	GOOS=$(GOOS) \
 	GOARCH=$(GOARCH) \
 	go build -ldflags "$(LDFLAGS)" -o $(BUILD_DIR)/$(APP_NAME) ./$(CMD_DIR)
@@ -284,7 +288,33 @@ release: clean check build-all
 quick:
 	@echo "$(COLOR_BLUE)Quick build...$(COLOR_RESET)"
 	@mkdir -p $(BUILD_DIR)
+	CGO_ENABLED=$(CGO_ENABLED) \
+	CGO_CFLAGS="$(CGO_CFLAGS)" \
+	CGO_LDFLAGS="$(CGO_LDFLAGS)" \
 	go build -ldflags "$(LDFLAGS)" -o $(BUILD_DIR)/$(APP_NAME) ./$(CMD_DIR)
 	@echo "$(COLOR_GREEN)Quick build complete$(COLOR_RESET)"
+
+## install-vosk: Install Vosk library (Linux x86_64 only)
+install-vosk:
+	@echo "$(COLOR_BLUE)Installing Vosk library...$(COLOR_RESET)"
+	@if [ ! -f scripts/install-vosk-lib.sh ]; then \
+		echo "$(COLOR_YELLOW)Error: scripts/install-vosk-lib.sh not found$(COLOR_RESET)"; \
+		exit 1; \
+	fi
+	@bash scripts/install-vosk-lib.sh
+	@echo "$(COLOR_GREEN)Vosk installation complete$(COLOR_RESET)"
+
+## check-vosk: Check if Vosk library is installed
+check-vosk:
+	@echo "$(COLOR_BLUE)Checking for Vosk library...$(COLOR_RESET)"
+	@if [ -f /usr/local/lib/libvosk.so ] && [ -f /usr/local/include/vosk_api.h ]; then \
+		echo "$(COLOR_GREEN)✓ Vosk library found$(COLOR_RESET)"; \
+		echo "  Library: /usr/local/lib/libvosk.so"; \
+		echo "  Header: /usr/local/include/vosk_api.h"; \
+	else \
+		echo "$(COLOR_YELLOW)✗ Vosk library not found$(COLOR_RESET)"; \
+		echo "  Run 'make install-vosk' to install it"; \
+		exit 1; \
+	fi
 
 .DEFAULT_GOAL := help
