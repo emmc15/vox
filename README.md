@@ -170,21 +170,17 @@ diaz/
 
 ### 🚧 Phase 3: Enhancement (IN PROGRESS)
 **Next Priority Items:**
-- [ ] Output to file (save transcriptions)
-- [ ] JSON output format
+- [ ] Multiple output formats (SRT, VTT, plain text), keep generic but implement json only for now
 - [ ] Voice Activity Detection (VAD) for better pause detection
-- [ ] Multiple language support
+- [ ] Timestamp support in transcriptions
 - [ ] Configuration file support (~/.diazrc)
 - [ ] Audio input device selection flag
-- [ ] Timestamp support in transcriptions
+
 
 ### 📋 Phase 4: Advanced Features (PLANNED)
 - [ ] Real-time streaming API (WebSocket/HTTP)
-- [ ] Multiple output formats (SRT, VTT, plain text)
-- [ ] Speaker diarization (identify different speakers)
 - [ ] Custom vocabulary/word lists
 - [ ] Punctuation and capitalization improvements
-- [ ] Background noise filtering
 
 ### 🔧 Phase 5: Optimization (FUTURE)
 - [ ] Static linking for all platforms
