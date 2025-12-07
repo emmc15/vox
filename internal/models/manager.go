@@ -26,21 +26,21 @@ var AvailableModels = []Model{
 		Language:    "en-US",
 		Size:        "40M",
 		URL:         "https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip",
-		Description: "Lightweight English model, fast but less accurate",
-	},
-	{
-		Name:        "vosk-model-en-us-0.22",
-		Language:    "en-US",
-		Size:        "1.8G",
-		URL:         "https://alphacephei.com/vosk/models/vosk-model-en-us-0.22.zip",
-		Description: "Large English model, slower but more accurate",
+		Description: "Small: Fast processing, good for real-time use, lower accuracy",
 	},
 	{
 		Name:        "vosk-model-en-us-0.22-lgraph",
 		Language:    "en-US",
 		Size:        "128M",
 		URL:         "https://alphacephei.com/vosk/models/vosk-model-en-us-0.22-lgraph.zip",
-		Description: "Medium English model, balanced speed and accuracy",
+		Description: "Medium: Balanced speed and accuracy, recommended for most users",
+	},
+	{
+		Name:        "vosk-model-en-us-0.22",
+		Language:    "en-US",
+		Size:        "1.8G",
+		URL:         "https://alphacephei.com/vosk/models/vosk-model-en-us-0.22.zip",
+		Description: "Large: Highest accuracy, slower processing, needs more memory",
 	},
 }
 

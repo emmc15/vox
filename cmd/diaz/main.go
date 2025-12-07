@@ -286,6 +286,33 @@ func selectModelInteractive() (string, error) {
 	return selected, nil
 }
 
+// getAudioConfigForModel selects the appropriate audio configuration based on model size
+func getAudioConfigForModel(modelName string) audio.CaptureConfig {
+	// Detect model size from name
+	// Small models: "small" in name
+	// Large models: "0.22" (1.8GB model) or explicit "large"
+	// Medium models: "lgraph" or other medium-sized models
+
+	modelLower := strings.ToLower(modelName)
+
+	// Large model detection (1.8GB model or "large" in name)
+	if strings.Contains(modelLower, "vosk-model-en-us-0.22") && !strings.Contains(modelLower, "lgraph") {
+		fmt.Println("[INFO] Large model detected - using large buffer configuration")
+		return audio.LargeModelConfig()
+	}
+
+	// Medium model detection
+	if strings.Contains(modelLower, "lgraph") ||
+	   strings.Contains(modelLower, "medium") {
+		fmt.Println("[INFO] Medium model detected - using medium buffer configuration")
+		return audio.MediumModelConfig()
+	}
+
+	// Small/default model
+	fmt.Println("[INFO] Small model detected - using default buffer configuration")
+	return audio.DefaultConfig()
+}
+
 func run() error {
 	// Determine which model to use
 	var selectedModel string
@@ -410,8 +437,13 @@ func run() error {
 	}
 	defer engine.Close()
 
+	// Select audio configuration based on model size
+	audioConfig := getAudioConfigForModel(selectedModel)
+	fmt.Printf("Audio buffer: %d samples (%.1f seconds at 16kHz)\n",
+		audioConfig.SampleBufferSize,
+		float64(audioConfig.SampleBufferSize)*float64(audioConfig.BufferFrames)/float64(audioConfig.SampleRate))
+
 	// Initialize audio capture
-	audioConfig := audio.DefaultConfig()
 	capturer, err := audio.NewCapturer(audioConfig)
 	if err != nil {
 		return fmt.Errorf("failed to create capturer: %w", err)

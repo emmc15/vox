@@ -23,19 +23,50 @@ type CaptureConfig struct {
 	// Smaller = lower latency, higher CPU usage
 	BufferFrames uint32
 
+	// SampleBufferSize is the size of the channel buffer for audio samples
+	// Larger = more tolerance for slow STT processing, higher memory usage
+	SampleBufferSize int
+
 	// DeviceID is the audio device identifier
 	// Empty string = use default device
 	DeviceID string
 }
 
-// DefaultConfig returns a default configuration optimized for speech recognition
+// DefaultConfig returns a default configuration optimized for fast/small models
 func DefaultConfig() CaptureConfig {
 	return CaptureConfig{
-		SampleRate:   16000, // 16kHz is optimal for most STT engines
-		Channels:     1,     // Mono
-		BitDepth:     16,    // 16-bit
-		BufferFrames: 480,   // 30ms at 16kHz
-		DeviceID:     "",    // Default device
+		SampleRate:       16000, // 16kHz is optimal for most STT engines
+		Channels:         1,     // Mono
+		BitDepth:         16,    // 16-bit
+		BufferFrames:     480,   // 30ms at 16kHz
+		SampleBufferSize: 50,    // Buffer 50 samples (~1.5 seconds)
+		DeviceID:         "",    // Default device
+	}
+}
+
+// MediumModelConfig returns configuration optimized for medium-sized models
+// These models process slower, so we need larger buffers
+func MediumModelConfig() CaptureConfig {
+	return CaptureConfig{
+		SampleRate:       16000, // 16kHz
+		Channels:         1,     // Mono
+		BitDepth:         16,    // 16-bit
+		BufferFrames:     480,   // 30ms at 16kHz
+		SampleBufferSize: 150,   // Buffer 150 samples (~4.5 seconds)
+		DeviceID:         "",    // Default device
+	}
+}
+
+// LargeModelConfig returns configuration optimized for large models
+// These models process very slowly, so we need even larger buffers
+func LargeModelConfig() CaptureConfig {
+	return CaptureConfig{
+		SampleRate:       16000, // 16kHz
+		Channels:         1,     // Mono
+		BitDepth:         16,    // 16-bit
+		BufferFrames:     480,   // 30ms at 16kHz
+		SampleBufferSize: 300,   // Buffer 300 samples (~9 seconds)
+		DeviceID:         "",    // Default device
 	}
 }
 

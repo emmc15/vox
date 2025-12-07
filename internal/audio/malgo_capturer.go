@@ -24,9 +24,15 @@ type MalgoCapturer struct {
 
 // NewMalgoCapturer creates a new malgo-based audio capturer
 func NewMalgoCapturer(config CaptureConfig) (*MalgoCapturer, error) {
+	// Use configured buffer size, or default to 50 if not specified
+	bufferSize := config.SampleBufferSize
+	if bufferSize == 0 {
+		bufferSize = 50
+	}
+
 	return &MalgoCapturer{
 		config:   config,
-		samples:  make(chan AudioSample, 10), // Buffer up to 10 samples
+		samples:  make(chan AudioSample, bufferSize),
 		errors:   make(chan error, 10),
 		stopChan: make(chan struct{}),
 	}, nil
