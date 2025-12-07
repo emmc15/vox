@@ -1,16 +1,18 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
-	"math"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
-	"time"
 
 	"github.com/emmett/diaz/internal/audio"
+	"github.com/emmett/diaz/internal/models"
 	"github.com/emmett/diaz/internal/output"
+	"github.com/emmett/diaz/internal/stt"
 )
 
 var (
@@ -33,8 +35,55 @@ func main() {
 }
 
 func run() error {
+	// Check for models
+	modelName := models.DefaultModelName
+	downloaded, err := models.IsModelDownloaded(modelName)
+	if err != nil {
+		return fmt.Errorf("failed to check for model: %w", err)
+	}
+
+	if !downloaded {
+		fmt.Printf("Model '%s' not found.\n", modelName)
+		fmt.Println("Available models:")
+		for i, model := range models.AvailableModels {
+			fmt.Printf("  %d. %s (%s) - %s\n", i+1, model.Name, model.Size, model.Description)
+		}
+		fmt.Println()
+		fmt.Printf("Download default model '%s'? (y/n): ", modelName)
+
+		reader := bufio.NewReader(os.Stdin)
+		response, err := reader.ReadString('\n')
+		if err != nil {
+			return fmt.Errorf("failed to read input: %w", err)
+		}
+
+		response = strings.TrimSpace(strings.ToLower(response))
+		if response != "y" && response != "yes" {
+			fmt.Println("Cannot proceed without a model. Exiting.")
+			return nil
+		}
+
+		// Download the model with progress
+		err = models.DownloadModel(modelName, func(downloaded, total int64) {
+			percent := float64(downloaded) / float64(total) * 100
+			fmt.Printf("\rProgress: %.1f%% (%d/%d bytes)", percent, downloaded, total)
+		})
+		if err != nil {
+			return fmt.Errorf("failed to download model: %w", err)
+		}
+		fmt.Println()
+	} else {
+		fmt.Printf("Using model: %s\n", modelName)
+	}
+
+	// Get model path
+	modelPath, err := models.GetModelPath(modelName)
+	if err != nil {
+		return fmt.Errorf("failed to get model path: %w", err)
+	}
+
 	// List available audio devices
-	fmt.Println("Detecting audio devices...")
+	fmt.Println("\nDetecting audio devices...")
 	devices, err := audio.ListDevices()
 	if err != nil {
 		return fmt.Errorf("failed to list devices: %w", err)
@@ -59,16 +108,31 @@ func run() error {
 	fmt.Printf("Using device: %s\n", defaultDevice.Name)
 	fmt.Println()
 
+	// Initialize STT engine
+	fmt.Println("Initializing speech recognition engine...")
+	engine := stt.NewVoskEngine()
+	sttConfig := stt.DefaultConfig(modelPath)
+	if err := engine.Initialize(sttConfig); err != nil {
+		return fmt.Errorf("failed to initialize STT engine: %w", err)
+	}
+	defer engine.Close()
+
 	// Initialize audio capture
-	config := audio.DefaultConfig()
-	capturer, err := audio.NewCapturer(config)
+	audioConfig := audio.DefaultConfig()
+	capturer, err := audio.NewCapturer(audioConfig)
 	if err != nil {
 		return fmt.Errorf("failed to create capturer: %w", err)
 	}
 
 	// Initialize output
 	out := output.DefaultConsoleOutput()
-	out.Info("Initializing audio capture...")
+	out.Info("Speech recognition ready!")
+	out.Info(fmt.Sprintf("Listening on %s (sample rate: %d Hz, channels: %d)",
+		defaultDevice.Name, audioConfig.SampleRate, audioConfig.Channels))
+	out.Info("Speak into your microphone. Press Ctrl+C to stop.")
+	fmt.Println()
+	fmt.Println("Transcription:")
+	fmt.Println("=" + strings.Repeat("=", 70))
 
 	// Set up context with cancellation
 	ctx, cancel := context.WithCancel(context.Background())
@@ -79,38 +143,38 @@ func run() error {
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-sigChan
-		fmt.Println("\nStopping...")
+		fmt.Println("\n\nStopping...")
 		cancel()
 	}()
 
 	// Start capturing
-	out.Info(fmt.Sprintf("Starting capture (sample rate: %d Hz, channels: %d, bit depth: %d)",
-		config.SampleRate, config.Channels, config.BitDepth))
-	out.Info("Press Ctrl+C to stop")
-	fmt.Println()
-
 	err = capturer.Start(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to start capture: %w", err)
 	}
 	defer capturer.Stop()
 
+	// Track state
+	var lastPartialText string
+	var transcriptionCount int
+
 	// Process audio samples
-	ticker := time.NewTicker(100 * time.Millisecond)
-	defer ticker.Stop()
-
-	var totalSamples uint64
-	var totalBytes uint64
-	startTime := time.Now()
-
 	for {
 		select {
 		case <-ctx.Done():
-			fmt.Println()
-			out.Info("Capture stopped")
-			duration := time.Since(startTime)
-			out.Info(fmt.Sprintf("Captured %d samples (%d bytes) in %s",
-				totalSamples, totalBytes, duration.Round(time.Second)))
+			// Get final result
+			finalResult, err := engine.FinalResult()
+			if err == nil && finalResult.Text != "" {
+				fmt.Printf("\n[FINAL] %s", finalResult.Text)
+				if finalResult.Confidence > 0 {
+					fmt.Printf(" (confidence: %.2f)", finalResult.Confidence)
+				}
+				fmt.Println()
+			}
+
+			fmt.Println("\n" + strings.Repeat("=", 72))
+			out.Info("Transcription stopped")
+			out.Info(fmt.Sprintf("Total transcriptions: %d", transcriptionCount))
 			return nil
 
 		case sample, ok := <-capturer.Samples():
@@ -118,47 +182,48 @@ func run() error {
 				return nil
 			}
 
-			totalSamples++
-			totalBytes += uint64(len(sample.Data))
+			// Process audio through STT engine
+			result, err := engine.ProcessAudio(ctx, sample.Data)
+			if err != nil {
+				out.Error(fmt.Sprintf("STT error: %v", err))
+				continue
+			}
 
-			// Calculate audio level (RMS)
-			level := calculateRMS(sample.Data)
-			out.WriteAudioLevel(level)
+			if result == nil {
+				continue
+			}
+
+			// Handle partial results (real-time feedback)
+			if result.Partial && result.Text != "" {
+				if result.Text != lastPartialText {
+					// Clear previous partial result and show new one
+					fmt.Printf("\r%s", strings.Repeat(" ", 80))
+					fmt.Printf("\r[partial] %s", result.Text)
+					lastPartialText = result.Text
+				}
+			}
+
+			// Handle final results (complete phrases/sentences)
+			if !result.Partial && result.Text != "" {
+				// Clear partial result line
+				fmt.Printf("\r%s\r", strings.Repeat(" ", 80))
+
+				// Print final transcription
+				transcriptionCount++
+				fmt.Printf("[%d] %s", transcriptionCount, result.Text)
+				if result.Confidence > 0 {
+					fmt.Printf(" (confidence: %.2f)", result.Confidence)
+				}
+				fmt.Println()
+
+				lastPartialText = ""
+			}
 
 		case err, ok := <-capturer.Errors():
 			if !ok {
 				return nil
 			}
 			out.Error(fmt.Sprintf("Capture error: %v", err))
-
-		case <-ticker.C:
-			// Periodic update (if needed)
 		}
 	}
-}
-
-// calculateRMS calculates the Root Mean Square (RMS) of audio samples
-// This gives us the audio level/volume
-func calculateRMS(data []byte) float64 {
-	if len(data) == 0 {
-		return 0
-	}
-
-	// Assuming 16-bit signed integers (2 bytes per sample)
-	var sum float64
-	sampleCount := len(data) / 2
-
-	for i := 0; i < sampleCount; i++ {
-		// Read 16-bit sample (little-endian)
-		sample := int16(data[i*2]) | int16(data[i*2+1])<<8
-		normalized := float64(sample) / 32768.0 // Normalize to -1.0 to 1.0
-		sum += normalized * normalized
-	}
-
-	if sampleCount == 0 {
-		return 0
-	}
-
-	rms := math.Sqrt(sum / float64(sampleCount))
-	return rms
 }
