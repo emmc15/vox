@@ -29,6 +29,8 @@ var (
 	listDownloaded  = flag.Bool("list-downloaded", false, "List all downloaded models")
 	downloadModel   = flag.String("download-model", "", "Download a specific model by name")
 	modelName       = flag.String("model", "", "Use a specific model (default: "+models.DefaultModelName+")")
+	selectModel     = flag.Bool("select-model", false, "Interactively select a model to use")
+	setDefault      = flag.String("set-default", "", "Set a model as the default")
 	showVersion     = flag.Bool("version", false, "Show version information")
 	autoDownload    = flag.Bool("auto-download", false, "Automatically download default model if not found (no prompt)")
 )
@@ -63,6 +65,11 @@ func main() {
 
 	if *downloadModel != "" {
 		handleDownloadModel(*downloadModel)
+		return
+	}
+
+	if *setDefault != "" {
+		handleSetDefault(*setDefault)
 		return
 	}
 
@@ -177,11 +184,127 @@ func handleDownloadModel(name string) {
 	fmt.Printf("✓ Model '%s' downloaded successfully!\n", name)
 }
 
+func handleSetDefault(name string) {
+	// Check if model exists in available list
+	model := models.FindModel(name)
+	if model == nil {
+		fmt.Fprintf(os.Stderr, "Error: Unknown model '%s'\n", name)
+		fmt.Println()
+		fmt.Println("Use 'diaz --list-models' to see available models")
+		os.Exit(1)
+	}
+
+	// Set as default
+	err := models.SetDefaultModel(name)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error setting default model: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("✓ Default model set to: %s\n", name)
+	fmt.Printf("  Description: %s\n", model.Description)
+	fmt.Printf("  Size: %s\n", model.Size)
+	fmt.Println()
+
+	// Check if model is downloaded
+	downloaded, _ := models.IsModelDownloaded(name)
+	if !downloaded {
+		fmt.Println("Note: This model is not yet downloaded.")
+		fmt.Printf("Run 'diaz --download-model %s' to download it.\n", name)
+	}
+}
+
+func selectModelInteractive() (string, error) {
+	fmt.Println("Select a model to use:")
+	fmt.Println()
+
+	// Get downloaded models
+	downloadedModels, err := models.ListDownloadedModels()
+	if err != nil {
+		return "", err
+	}
+
+	// Show downloaded models first
+	downloadedMap := make(map[string]bool)
+	for _, m := range downloadedModels {
+		downloadedMap[m] = true
+	}
+
+	for i, model := range models.AvailableModels {
+		status := "Not downloaded"
+		if downloadedMap[model.Name] {
+			status = "✓ Downloaded"
+		}
+
+		fmt.Printf("%d. %s (%s)\n", i+1, model.Name, model.Size)
+		fmt.Printf("   %s\n", model.Description)
+		fmt.Printf("   Status: %s\n", status)
+		fmt.Println()
+	}
+
+	fmt.Print("Enter number (1-3): ")
+	reader := bufio.NewReader(os.Stdin)
+	input, err := reader.ReadString('\n')
+	if err != nil {
+		return "", err
+	}
+
+	input = strings.TrimSpace(input)
+	var choice int
+	_, err = fmt.Sscanf(input, "%d", &choice)
+	if err != nil || choice < 1 || choice > len(models.AvailableModels) {
+		return "", fmt.Errorf("invalid selection")
+	}
+
+	selected := models.AvailableModels[choice-1].Name
+	fmt.Printf("\nSelected: %s\n", selected)
+
+	// Check if downloaded
+	if !downloadedMap[selected] {
+		fmt.Println("This model is not downloaded.")
+		fmt.Print("Download now? (y/n): ")
+		response, err := reader.ReadString('\n')
+		if err != nil {
+			return "", err
+		}
+
+		response = strings.TrimSpace(strings.ToLower(response))
+		if response == "y" || response == "yes" {
+			err = models.DownloadModel(selected, func(downloaded, total int64) {
+				percent := float64(downloaded) / float64(total) * 100
+				fmt.Printf("\rProgress: %.1f%% (%d/%d bytes)", percent, downloaded, total)
+			})
+			if err != nil {
+				return "", fmt.Errorf("failed to download model: %w", err)
+			}
+			fmt.Println()
+		} else {
+			return "", fmt.Errorf("cannot proceed without model")
+		}
+	}
+
+	return selected, nil
+}
+
 func run() error {
 	// Determine which model to use
-	selectedModel := models.DefaultModelName
+	var selectedModel string
+	var err error
+
+	// Priority: --model flag > --select-model > configured default > hardcoded default
 	if *modelName != "" {
 		selectedModel = *modelName
+	} else if *selectModel {
+		selectedModel, err = selectModelInteractive()
+		if err != nil {
+			return err
+		}
+	} else {
+		// Get configured default (or fallback to DefaultModelName)
+		selectedModel, err = models.GetDefaultModel()
+		if err != nil {
+			return fmt.Errorf("failed to get default model: %w", err)
+		}
 	}
 
 	// Check if model is downloaded

@@ -134,22 +134,35 @@ diaz/
 - [ ] Performance tuning
 - [ ] CI/CD pipeline
 
-## Usage (Planned)
+## Usage
+
 ```bash
-# Basic usage
+# Basic usage (uses default or configured model)
 diaz
 
-# Specify model
-diaz --model vosk-model-en-us-large
+# Interactive model selection
+diaz --select-model
 
-# Output to file
-diaz --output transcription.txt
+# Use a specific model
+diaz --model vosk-model-en-us-0.22-lgraph
 
-# JSON output
-diaz --format json
-
-# List available models
+# List all available models for download
 diaz --list-models
+
+# List downloaded models
+diaz --list-downloaded
+
+# Download a specific model
+diaz --download-model vosk-model-en-us-0.22-lgraph
+
+# Set default model
+diaz --set-default vosk-model-en-us-0.22-lgraph
+
+# Auto-download default model if missing (no prompt)
+diaz --auto-download
+
+# Show version
+diaz --version
 ```
 
 ## Dependencies

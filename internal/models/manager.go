@@ -57,6 +57,58 @@ func GetModelsDir() (string, error) {
 	return filepath.Join(cwd, "models"), nil
 }
 
+// GetDefaultModel returns the configured default model name
+// If no custom default is set, returns DefaultModelName
+func GetDefaultModel() (string, error) {
+	modelsDir, err := GetModelsDir()
+	if err != nil {
+		return DefaultModelName, err
+	}
+
+	configFile := filepath.Join(modelsDir, ".default_model")
+	data, err := os.ReadFile(configFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return DefaultModelName, nil
+		}
+		return DefaultModelName, err
+	}
+
+	modelName := strings.TrimSpace(string(data))
+	if modelName == "" {
+		return DefaultModelName, nil
+	}
+
+	return modelName, nil
+}
+
+// SetDefaultModel sets the default model to use
+func SetDefaultModel(modelName string) error {
+	// Verify model exists in available models
+	model := FindModel(modelName)
+	if model == nil {
+		return fmt.Errorf("unknown model: %s", modelName)
+	}
+
+	modelsDir, err := GetModelsDir()
+	if err != nil {
+		return err
+	}
+
+	// Create models directory if it doesn't exist
+	if err := os.MkdirAll(modelsDir, 0755); err != nil {
+		return fmt.Errorf("failed to create models directory: %w", err)
+	}
+
+	configFile := filepath.Join(modelsDir, ".default_model")
+	err = os.WriteFile(configFile, []byte(modelName), 0644)
+	if err != nil {
+		return fmt.Errorf("failed to save default model: %w", err)
+	}
+
+	return nil
+}
+
 // IsModelDownloaded checks if a model is already downloaded
 func IsModelDownloaded(modelName string) (bool, error) {
 	modelsDir, err := GetModelsDir()
