@@ -203,6 +203,7 @@ diaz/
 - [x] Voice Activity Detection (VAD) for better pause detection
 
 **Next Priority Items:**
+- [ ] VAD Improvement given voice is detected, when deciding on going back to silence mode, then have a delay after the last input. ie I spoike for 4secs, I want a delay of 15 secs before going silent
 - [ ] Timestamp support in transcriptions
 - [ ] Configuration file support (~/.diazrc)
 - [ ] Audio input device selection flag
