@@ -240,10 +240,6 @@ diaz/
 
 **Goal**: Transform Diaz into a server-based STT service with MCP interfaces
 
-**P0 do first**
-- [ ] Configuration file support (~/.diazrc or /etc/diaz/config.yaml)
-- [ ] Audio input device selection (CLI mode)
-
 **Priority 1: MCP Server Implementation**
 - [ ] MCP protocol integration (Model Context Protocol)
 - [ ] MCP server endpoint for context-aware transcription
