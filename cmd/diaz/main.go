@@ -32,7 +32,7 @@ var (
 	modelName       = flag.String("model", "", "Use a specific model (default: "+models.DefaultModelName+")")
 	selectModel     = flag.Bool("select-model", false, "Interactively select a model to use")
 	setDefault      = flag.String("set-default", "", "Set a model as the default")
-	outputFormat    = flag.String("format", "console", "Output format: console, json, text")
+	outputFormat    = flag.String("format", "json", "Output format: console, json, text")
 	outputFile      = flag.String("output", "", "Output file (default: stdout)")
 	enableVAD        = flag.Bool("vad", true, "Enable Voice Activity Detection for better pause handling")
 	vadThreshold     = flag.Float64("vad-threshold", 0.01, "VAD energy threshold (0.001-0.1, lower=more sensitive)")
@@ -598,13 +598,19 @@ func run() error {
 				}
 
 				// Handle speech start
-				if speechStarted && formatter == nil {
-					fmt.Printf("\n[Speech detected]\n")
+				if speechStarted {
+					if formatter != nil {
+						formatter.WriteEvent("vad", "Speech detected")
+					} else {
+						fmt.Printf("\n[Speech detected]\n")
+					}
 				}
 
 				// Handle speech end - finalize current utterance
 				if speechEnded {
-					if formatter == nil {
+					if formatter != nil {
+						formatter.WriteEvent("vad", "Silence detected - finalizing")
+					} else {
 						fmt.Printf("\n[Silence detected - finalizing]\n")
 					}
 

@@ -18,7 +18,7 @@ A real-time speech-to-text application built in Go that captures microphone audi
 - ✅ **Device Detection** - Auto-detect and list available microphones
 - ✅ **CLI Tools** - Model selection, downloads, default configuration
 - ✅ **Multiple Output Formats** - JSON, plain text, or interactive console output
-- ✅ **Voice Activity Detection** - Energy-based VAD for automatic pause handling
+- ✅ **Voice Activity Detection** - Energy-based VAD with configurable silence delay
 
 ## Quick Start
 
@@ -109,11 +109,14 @@ A real-time speech-to-text application built in Go that captures microphone audi
 
 ### Voice Activity Detection
 ```bash
-# Enable VAD for automatic pause detection
+# Enable VAD for automatic pause detection (enabled by default)
 ./build/diaz --vad
 
 # Enable VAD with custom sensitivity (lower=more sensitive)
 ./build/diaz --vad --vad-threshold 0.005
+
+# Set silence delay (seconds after speech before finalizing)
+./build/diaz --vad --vad-silence-delay 10.0
 
 # VAD with JSON output
 ./build/diaz --vad --format json --output transcription.json
@@ -201,10 +204,11 @@ diaz/
 **Completed:**
 - [x] Multiple output formats (JSON, plain text) with extensible interface
 - [x] Voice Activity Detection (VAD) for better pause detection
+- [x] VAD silence delay - configurable delay after speech before returning to silence mode
+- [ ] Timestamp support in transcriptions
 
 **Next Priority Items:**
-- [ ] VAD Improvement given voice is detected, when deciding on going back to silence mode, then have a delay after the last input. ie I spoike for 4secs, I want a delay of 15 secs before going silent
-- [ ] Timestamp support in transcriptions
+
 - [ ] Configuration file support (~/.diazrc)
 - [ ] Audio input device selection flag
 

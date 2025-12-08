@@ -14,6 +14,14 @@ type TranscriptionResult struct {
 	Confidence float64   `json:"confidence,omitempty"`
 	Timestamp  time.Time `json:"timestamp"`
 	Partial    bool      `json:"partial"`
+	Type 	 string    `json:"type,omitempty"`
+}
+
+// Event represents a system event
+type Event struct {
+	Type      string    `json:"type"`
+	Message   string    `json:"message"`
+	Timestamp time.Time `json:"timestamp"`
 }
 
 // Formatter is the interface for output formatters
@@ -23,6 +31,9 @@ type Formatter interface {
 
 	// WritePartial writes a partial (in-progress) result
 	WritePartial(text string) error
+
+	// WriteEvent writes a system event (e.g., VAD state changes)
+	WriteEvent(eventType, message string) error
 
 	// Flush ensures all buffered output is written
 	Flush() error
@@ -71,6 +82,16 @@ func (j *JSONFormatter) WritePartial(text string) error {
 	return j.encoder.Encode(result)
 }
 
+// WriteEvent writes a system event
+func (j *JSONFormatter) WriteEvent(eventType, message string) error {
+	event := Event{
+		Type:      eventType,
+		Message:   message,
+		Timestamp: time.Now(),
+	}
+	return j.encoder.Encode(event)
+}
+
 // Flush ensures all buffered output is written
 func (j *JSONFormatter) Flush() error {
 	// JSON encoder writes immediately, nothing to flush
@@ -116,6 +137,14 @@ func (p *PlainTextFormatter) WriteResult(result TranscriptionResult) error {
 // WritePartial writes a partial result (no-op for plain text)
 func (p *PlainTextFormatter) WritePartial(text string) error {
 	return nil
+}
+
+// WriteEvent writes a system event
+func (p *PlainTextFormatter) WriteEvent(eventType, message string) error {
+	timestamp := time.Now().Format("15:04:05")
+	text := fmt.Sprintf("[%s] [%s] %s\n", timestamp, eventType, message)
+	_, err := p.writer.Write([]byte(text))
+	return err
 }
 
 // Flush ensures all buffered output is written
