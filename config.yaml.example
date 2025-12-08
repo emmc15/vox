@@ -1,0 +1,64 @@
+# Diaz Configuration File Example
+# Copy this file to ~/.diazrc or /etc/diaz/config.yaml
+#
+# Priority: CLI flags > ~/.diazrc > /etc/diaz/config.yaml > defaults
+# All settings are optional - defaults will be used if not specified
+
+# Model settings
+model:
+  # Default model to use for transcription
+  # Available: vosk-model-small-en-us-0.15, vosk-model-en-us-0.22-lgraph, vosk-model-en-us-0.22
+  default: "vosk-model-en-us-0.22-lgraph"
+
+# Voice Activity Detection (VAD) settings
+vad:
+  # Enable/disable VAD
+  enabled: true
+
+  # Energy threshold for voice detection (0.001-0.1)
+  # Lower values = more sensitive (may detect more background noise)
+  # Higher values = less sensitive (may miss quiet speech)
+  threshold: 0.01
+
+  # Silence delay in seconds before finalizing transcription
+  # How long to wait after speech ends before returning to silence mode
+  silence_delay: 5.0
+
+# Output settings
+output:
+  # Output format: console, json, text
+  format: "json"
+
+  # Output file (empty = stdout)
+  # Example: "/var/log/diaz/transcriptions.json"
+  file: ""
+
+# Audio settings
+audio:
+  # Audio input device name or ID
+  # Use "diaz --list-devices" to see available devices
+  # Empty = use system default device
+  device: ""
+  # Examples:
+  # device: "USB Audio Device"
+  # device: "Built-in Microphone"
+
+# Server settings (for future use)
+server:
+  # Server mode: cli, server, mcp
+  mode: "cli"
+
+  # HTTP server port
+  port: 8080
+
+  # HTTP server host
+  host: "localhost"
+
+  # Enable TLS/HTTPS
+  enable_tls: false
+
+  # TLS certificate file
+  cert_file: ""
+
+  # TLS key file
+  key_file: ""

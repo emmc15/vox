@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/emmett/diaz/internal/audio"
+	"github.com/emmett/diaz/internal/config"
 	"github.com/emmett/diaz/internal/models"
 	"github.com/emmett/diaz/internal/output"
 	"github.com/emmett/diaz/internal/stt"
@@ -26,6 +27,7 @@ var (
 
 // CLI flags
 var (
+	configFile      = flag.String("config", "", "Path to configuration file (default: ~/.diazrc or /etc/diaz/config.yaml)")
 	listModels      = flag.Bool("list-models", false, "List all available models for download")
 	listDownloaded  = flag.Bool("list-downloaded", false, "List all downloaded models")
 	downloadModel   = flag.String("download-model", "", "Download a specific model by name")
@@ -37,12 +39,24 @@ var (
 	enableVAD       = flag.Bool("vad", true, "Enable Voice Activity Detection for better pause handling")
 	vadThreshold    = flag.Float64("vad-threshold", 0.01, "VAD energy threshold (0.001-0.1, lower=more sensitive)")
 	vadSilenceDelay = flag.Float64("vad-silence-delay", 5.0, "Delay in seconds after last speech before returning to silence")
+	audioDevice     = flag.String("device", "", "Audio input device name (use --list-devices to see available devices)")
+	listDevices     = flag.Bool("list-devices", false, "List all available audio input devices")
 	showVersion     = flag.Bool("version", false, "Show version information")
 	autoDownload    = flag.Bool("auto-download", false, "Automatically download default model if not found (no prompt)")
 )
 
 func main() {
 	flag.Parse()
+
+	// Load configuration file
+	cfg, err := config.LoadWithFallback(*configFile)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: Failed to load config: %v\n", err)
+		cfg = config.DefaultConfig()
+	}
+
+	// Apply config values as defaults (CLI flags override if explicitly set)
+	applyConfigDefaults(cfg)
 
 	// Handle version flag
 	if *showVersion {
@@ -57,6 +71,12 @@ func main() {
 		Version, GitCommit, GitBranch, BuildTime)
 	fmt.Println("Speech-to-Text Application")
 	fmt.Println()
+
+	// Handle list devices flag
+	if *listDevices {
+		handleListDevices()
+		return
+	}
 
 	// Handle model management commands
 	if *listModels {
@@ -83,6 +103,88 @@ func main() {
 	if err := run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
+	}
+}
+
+// applyConfigDefaults applies configuration values as defaults
+// CLI flags override config file values if explicitly set
+func applyConfigDefaults(cfg *config.Config) {
+	// Check if flags were explicitly set by user
+	flagsSet := make(map[string]bool)
+	flag.Visit(func(f *flag.Flag) {
+		flagsSet[f.Name] = true
+	})
+
+	// Apply config defaults only if flag was not explicitly set
+	if !flagsSet["model"] && cfg.Model.Default != "" {
+		*modelName = cfg.Model.Default
+	}
+
+	if !flagsSet["format"] && cfg.Output.Format != "" {
+		*outputFormat = cfg.Output.Format
+	}
+
+	if !flagsSet["output"] && cfg.Output.File != "" {
+		*outputFile = cfg.Output.File
+	}
+
+	if !flagsSet["vad"] {
+		*enableVAD = cfg.VAD.Enabled
+	}
+
+	if !flagsSet["vad-threshold"] && cfg.VAD.Threshold > 0 {
+		*vadThreshold = cfg.VAD.Threshold
+	}
+
+	if !flagsSet["vad-silence-delay"] && cfg.VAD.SilenceDelay > 0 {
+		*vadSilenceDelay = cfg.VAD.SilenceDelay
+	}
+
+	if !flagsSet["device"] && cfg.Audio.Device != "" {
+		*audioDevice = cfg.Audio.Device
+	}
+}
+
+// handleListDevices lists all available audio input devices
+func handleListDevices() {
+	fmt.Println("Detecting audio input devices...")
+	fmt.Println()
+
+	devices, err := audio.ListDevices()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: Failed to list devices: %v\n", err)
+		os.Exit(1)
+	}
+
+	if len(devices) == 0 {
+		fmt.Println("No audio capture devices found.")
+		os.Exit(1)
+	}
+
+	fmt.Printf("Found %d capture device(s):\n\n", len(devices))
+
+	for i, device := range devices {
+		marker := ""
+		if device.IsDefault {
+			marker = " [DEFAULT]"
+		}
+		fmt.Printf("%d. %s%s\n", i+1, device.Name, marker)
+		fmt.Printf("   ID: %s\n", device.ID)
+		if device.MaxChannels > 0 {
+			fmt.Printf("   Max Channels: %d\n", device.MaxChannels)
+		}
+		if len(device.SupportedRates) > 0 {
+			fmt.Printf("   Supported Rates: %v Hz\n", device.SupportedRates)
+		}
+		fmt.Println()
+	}
+
+	fmt.Println("To use a specific device, run:")
+	fmt.Println("  diaz --device \"<device-name>\"")
+	fmt.Println()
+	fmt.Println("Example:")
+	if len(devices) > 0 {
+		fmt.Printf("  diaz --device \"%s\"\n", devices[0].Name)
 	}
 }
 
@@ -425,13 +527,41 @@ func run() error {
 	}
 	fmt.Println()
 
-	// Get default device
-	defaultDevice, err := audio.GetDefaultDevice()
-	if err != nil {
-		return fmt.Errorf("failed to get default device: %w", err)
+	// Select audio device
+	var selectedDevice *audio.DeviceInfo
+	if *audioDevice != "" {
+		// User specified a device, search for it
+		for i := range devices {
+			if devices[i].Name == *audioDevice || devices[i].ID == *audioDevice {
+				selectedDevice = &devices[i]
+				break
+			}
+		}
+
+		if selectedDevice == nil {
+			fmt.Fprintf(os.Stderr, "Error: Device '%s' not found\n\n", *audioDevice)
+			fmt.Println("Available devices:")
+			for i, device := range devices {
+				marker := ""
+				if device.IsDefault {
+					marker = " [DEFAULT]"
+				}
+				fmt.Printf("  %d. %s%s\n", i+1, device.Name, marker)
+			}
+			fmt.Println()
+			fmt.Println("Use --list-devices for more details")
+			return fmt.Errorf("invalid audio device specified")
+		}
+	} else {
+		// Use default device
+		defaultDevice, err := audio.GetDefaultDevice()
+		if err != nil {
+			return fmt.Errorf("failed to get default device: %w", err)
+		}
+		selectedDevice = defaultDevice
 	}
 
-	fmt.Printf("Using device: %s\n", defaultDevice.Name)
+	fmt.Printf("Using device: %s\n", selectedDevice.Name)
 	fmt.Println()
 
 	// Initialize STT engine
@@ -445,6 +575,10 @@ func run() error {
 
 	// Select audio configuration based on model size
 	audioConfig := getAudioConfigForModel(selectedModel)
+
+	// Set the selected device
+	audioConfig.DeviceID = selectedDevice.ID
+
 	fmt.Printf("Audio buffer: %d samples (%.1f seconds at 16kHz)\n",
 		audioConfig.SampleBufferSize,
 		float64(audioConfig.SampleBufferSize)*float64(audioConfig.BufferFrames)/float64(audioConfig.SampleRate))
@@ -499,7 +633,7 @@ func run() error {
 
 	statusOut.Info("Speech recognition ready!")
 	statusOut.Info(fmt.Sprintf("Listening on %s (sample rate: %d Hz, channels: %d)",
-		defaultDevice.Name, audioConfig.SampleRate, audioConfig.Channels))
+		selectedDevice.Name, audioConfig.SampleRate, audioConfig.Channels))
 	statusOut.Info("Speak into your microphone. Press Ctrl+C to stop.")
 
 	// Only show transcription header in console mode
