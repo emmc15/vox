@@ -34,10 +34,10 @@ var (
 	setDefault      = flag.String("set-default", "", "Set a model as the default")
 	outputFormat    = flag.String("format", "json", "Output format: console, json, text")
 	outputFile      = flag.String("output", "", "Output file (default: stdout)")
-	enableVAD        = flag.Bool("vad", true, "Enable Voice Activity Detection for better pause handling")
-	vadThreshold     = flag.Float64("vad-threshold", 0.01, "VAD energy threshold (0.001-0.1, lower=more sensitive)")
-	vadSilenceDelay  = flag.Float64("vad-silence-delay", 5.0, "Delay in seconds after last speech before returning to silence")
-	showVersion      = flag.Bool("version", false, "Show version information")
+	enableVAD       = flag.Bool("vad", true, "Enable Voice Activity Detection for better pause handling")
+	vadThreshold    = flag.Float64("vad-threshold", 0.01, "VAD energy threshold (0.001-0.1, lower=more sensitive)")
+	vadSilenceDelay = flag.Float64("vad-silence-delay", 5.0, "Delay in seconds after last speech before returning to silence")
+	showVersion     = flag.Bool("version", false, "Show version information")
 	autoDownload    = flag.Bool("auto-download", false, "Automatically download default model if not found (no prompt)")
 )
 
@@ -309,7 +309,7 @@ func getAudioConfigForModel(modelName string) audio.CaptureConfig {
 
 	// Medium model detection
 	if strings.Contains(modelLower, "lgraph") ||
-	   strings.Contains(modelLower, "medium") {
+		strings.Contains(modelLower, "medium") {
 		fmt.Println("[INFO] Medium model detected - using medium buffer configuration")
 		return audio.MediumModelConfig()
 	}

@@ -11,16 +11,16 @@ import (
 
 // VoskEngine implements the Engine interface using Vosk
 type VoskEngine struct {
-	model      *vosk.VoskModel
-	recognizer *vosk.VoskRecognizer
-	config     Config
-	mu         sync.Mutex
+	model       *vosk.VoskModel
+	recognizer  *vosk.VoskRecognizer
+	config      Config
+	mu          sync.Mutex
 	initialized bool
 }
 
 // VoskResult represents the JSON result from Vosk
 type VoskResult struct {
-	Text   string  `json:"text"`
+	Text   string `json:"text"`
 	Result []struct {
 		Conf  float64 `json:"conf"`
 		End   float64 `json:"end"`

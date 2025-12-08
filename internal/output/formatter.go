@@ -14,7 +14,7 @@ type TranscriptionResult struct {
 	Confidence float64   `json:"confidence,omitempty"`
 	Timestamp  time.Time `json:"timestamp"`
 	Partial    bool      `json:"partial"`
-	Type 	 string    `json:"type,omitempty"`
+	Type       string    `json:"type,omitempty"`
 }
 
 // Event represents a system event

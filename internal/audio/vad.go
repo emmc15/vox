@@ -22,9 +22,9 @@ type VADConfig struct {
 // DefaultVADConfig returns a default VAD configuration
 func DefaultVADConfig() VADConfig {
 	return VADConfig{
-		EnergyThreshold: 0.01,  // Moderate sensitivity
-		SilenceFrames:   33 * 8,    // 1s of silence
-		SpeechFrames:    3,     // 90ms of speech
+		EnergyThreshold: 0.01,   // Moderate sensitivity
+		SilenceFrames:   33 * 8, // 1s of silence
+		SpeechFrames:    3,      // 90ms of speech
 	}
 }
 

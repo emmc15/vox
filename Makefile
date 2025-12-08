@@ -49,7 +49,7 @@ COLOR_GREEN := \033[32m
 COLOR_YELLOW := \033[33m
 COLOR_BLUE := \033[34m
 
-.PHONY: all build clean test fmt vet lint deps help install run dev
+.PHONY: all build clean test fmt format vet lint deps help install run dev
 .PHONY: build-linux build-darwin build-windows build-all
 .PHONY: docker-build docker-build-all
 
@@ -206,6 +206,9 @@ fmt:
 	@echo "$(COLOR_BLUE)Formatting code...$(COLOR_RESET)"
 	go fmt ./...
 	@echo "$(COLOR_GREEN)Code formatted$(COLOR_RESET)"
+
+## format: Alias for fmt
+format: fmt
 
 ## vet: Run go vet
 vet:
