@@ -34,9 +34,10 @@ var (
 	setDefault      = flag.String("set-default", "", "Set a model as the default")
 	outputFormat    = flag.String("format", "console", "Output format: console, json, text")
 	outputFile      = flag.String("output", "", "Output file (default: stdout)")
-	enableVAD       = flag.Bool("vad", false, "Enable Voice Activity Detection for better pause handling")
-	vadThreshold    = flag.Float64("vad-threshold", 0.01, "VAD energy threshold (0.001-0.1, lower=more sensitive)")
-	showVersion     = flag.Bool("version", false, "Show version information")
+	enableVAD        = flag.Bool("vad", true, "Enable Voice Activity Detection for better pause handling")
+	vadThreshold     = flag.Float64("vad-threshold", 0.01, "VAD energy threshold (0.001-0.1, lower=more sensitive)")
+	vadSilenceDelay  = flag.Float64("vad-silence-delay", 5.0, "Delay in seconds after last speech before returning to silence")
+	showVersion      = flag.Bool("version", false, "Show version information")
 	autoDownload    = flag.Bool("auto-download", false, "Automatically download default model if not found (no prompt)")
 )
 
@@ -533,8 +534,12 @@ func run() error {
 	if *enableVAD {
 		vadConfig := audio.DefaultVADConfig()
 		vadConfig.EnergyThreshold = *vadThreshold
+		// Convert silence delay (seconds) to frames
+		// Assuming 30ms per frame (16kHz, ~480 samples per frame)
+		framesPerSecond := 33.33 // ~30ms per frame
+		vadConfig.SilenceFrames = int(*vadSilenceDelay * framesPerSecond)
 		vad = audio.NewVAD(vadConfig)
-		statusOut.Info(fmt.Sprintf("Voice Activity Detection enabled (threshold: %.4f)", *vadThreshold))
+		statusOut.Info(fmt.Sprintf("Voice Activity Detection enabled (threshold: %.4f, silence delay: %.1fs)", *vadThreshold, *vadSilenceDelay))
 	}
 
 	// Track state
@@ -585,6 +590,12 @@ func run() error {
 			// Process VAD if enabled
 			if vad != nil {
 				isSpeaking, speechStarted, speechEnded := vad.ProcessFrame(sample.Data)
+
+				// Debug: show energy levels
+				energy := vad.GetEnergyLevel(sample.Data)
+				if formatter == nil {
+					fmt.Printf("\r[Energy: %.6f, Speaking: %v]", energy, isSpeaking)
+				}
 
 				// Handle speech start
 				if speechStarted && formatter == nil {
