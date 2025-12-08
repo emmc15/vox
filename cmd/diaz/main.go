@@ -15,6 +15,7 @@ import (
 	"github.com/emmett/diaz/internal/config"
 	"github.com/emmett/diaz/internal/models"
 	"github.com/emmett/diaz/internal/output"
+	"github.com/emmett/diaz/internal/server/mcp"
 	"github.com/emmett/diaz/internal/stt"
 )
 
@@ -28,6 +29,7 @@ var (
 // CLI flags
 var (
 	configFile      = flag.String("config", "", "Path to configuration file (default: ~/.diazrc or /etc/diaz/config.yaml)")
+	mode            = flag.String("mode", "cli", "Operation mode: cli, mcp")
 	listModels      = flag.Bool("list-models", false, "List all available models for download")
 	listDownloaded  = flag.Bool("list-downloaded", false, "List all downloaded models")
 	downloadModel   = flag.String("download-model", "", "Download a specific model by name")
@@ -71,6 +73,15 @@ func main() {
 		Version, GitCommit, GitBranch, BuildTime)
 	fmt.Println("Speech-to-Text Application")
 	fmt.Println()
+
+	// Handle MCP server mode
+	if *mode == "mcp" {
+		if err := runMCPServer(); err != nil {
+			fmt.Fprintf(os.Stderr, "MCP server error: %v\n", err)
+			os.Exit(1)
+		}
+		return
+	}
 
 	// Handle list devices flag
 	if *listDevices {
@@ -844,5 +855,86 @@ func run() error {
 			}
 			statusOut.Error(fmt.Sprintf("Capture error: %v", err))
 		}
+	}
+}
+
+// runMCPServer starts the MCP server
+func runMCPServer() error {
+	fmt.Fprintf(os.Stderr, "Starting MCP server...\n")
+	fmt.Fprintf(os.Stderr, "Protocol: Model Context Protocol (stdio transport)\n")
+	fmt.Fprintf(os.Stderr, "Version: %s (commit: %s)\n\n", Version, GitCommit)
+
+	// Get default model
+	var modelPath string
+	var selectedModel string
+
+	if *modelName != "" {
+		selectedModel = *modelName
+	} else {
+		var err error
+		selectedModel, err = models.GetDefaultModel()
+		if err != nil {
+			return fmt.Errorf("failed to get default model: %w", err)
+		}
+	}
+
+	// Check if model is downloaded
+	downloaded, err := models.IsModelDownloaded(selectedModel)
+	if err != nil {
+		return fmt.Errorf("failed to check for model: %w", err)
+	}
+
+	if !downloaded {
+		return fmt.Errorf("model '%s' not found. Please download it first using:\n  diaz --download-model %s", selectedModel, selectedModel)
+	}
+
+	// Get model path
+	modelPath, err = models.GetModelPath(selectedModel)
+	if err != nil {
+		return fmt.Errorf("failed to get model path: %w", err)
+	}
+
+	fmt.Fprintf(os.Stderr, "Using model: %s\n", selectedModel)
+	fmt.Fprintf(os.Stderr, "Model path: %s\n\n", modelPath)
+
+	// Create MCP server
+	serverConfig := mcp.Config{
+		ServerName:    "diaz-mcp",
+		ServerVersion: Version,
+		ModelPath:     modelPath,
+		DefaultModel:  selectedModel,
+	}
+
+	server, err := mcp.NewServer(serverConfig)
+	if err != nil {
+		return fmt.Errorf("failed to create MCP server: %w", err)
+	}
+
+	// Set up signal handling for graceful shutdown
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+
+	// Start server in goroutine
+	errChan := make(chan error, 1)
+	go func() {
+		errChan <- server.Start()
+	}()
+
+	fmt.Fprintf(os.Stderr, "MCP server ready. Listening on stdin/stdout...\n")
+	fmt.Fprintf(os.Stderr, "Press Ctrl+C to stop.\n\n")
+
+	// Wait for shutdown signal or error
+	select {
+	case <-sigChan:
+		fmt.Fprintf(os.Stderr, "\nShutting down MCP server...\n")
+		if err := server.Stop(); err != nil {
+			return fmt.Errorf("error stopping server: %w", err)
+		}
+		return nil
+	case err := <-errChan:
+		if err != nil {
+			return fmt.Errorf("server error: %w", err)
+		}
+		return nil
 	}
 }

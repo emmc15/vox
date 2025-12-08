@@ -5,11 +5,13 @@ A cross-platform speech-to-text server built in Go with HTTP API and MCP (Model 
 
 ## Current Status
 
-**✅ CLI MODE WORKING** - Diaz is fully functional as a CLI transcription tool!
-**🚧 SERVER MODE** - HTTP and MCP server implementation in progress
+**✅ CLI MODE** - Fully functional CLI transcription tool!
+**✅ MCP SERVER** - Model Context Protocol server implemented and working!
+**🚧 HTTP API** - HTTP server implementation in progress
 
-### Implemented Features (CLI Mode)
+### Implemented Features
 
+**CLI Mode:**
 - ✅ **Real-time Audio Capture** - Multi-platform audio input via malgo
 - ✅ **Speech Recognition** - Offline transcription using Vosk
 - ✅ **Model Management** - Download, cache, and switch between models
@@ -20,10 +22,20 @@ A cross-platform speech-to-text server built in Go with HTTP API and MCP (Model 
 - ✅ **CLI Tools** - Model selection, downloads, default configuration
 - ✅ **Multiple Output Formats** - JSON, plain text, or interactive console output
 - ✅ **Voice Activity Detection** - Energy-based VAD with configurable silence delay
+- ✅ **Configuration Files** - YAML config support (~/.diazrc, /etc/diaz/config.yaml)
+- ✅ **Audio Device Selection** - Choose specific input devices
 
-### Planned Features (Server Mode)
+**MCP Server:**
+- ✅ **MCP Protocol** - Full MCP (Model Context Protocol) implementation
+- ✅ **transcribe_audio Tool** - Audio transcription with VAD support
+- ✅ **list_models Tool** - Query available speech models
+- ✅ **Stdio Transport** - Standard input/output for AI assistant integration
+- ✅ **Automatic Silence Detection** - Returns transcription when silence is detected
 
-- 🚧 **MCP Server** - Model Context Protocol support for AI assistants
+### Planned Features
+
+- 🚧 **HTTP API** - RESTful endpoints for audio transcription
+- 🚧 **WebSocket Streaming** - Real-time bidirectional audio streaming
 - 🚧 **Multi-client Support** - Handle concurrent transcription sessions
 - 🚧 **Cross-platform Deployment** - systemd, launchd, Windows service, Docker
 
