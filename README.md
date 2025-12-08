@@ -1,13 +1,14 @@
 # diaz
 make computer shit talk
 
-A real-time speech-to-text application built in Go that captures microphone audio and transcribes it locally using Vosk. Designed to be self-contained with minimal dependencies.
+A cross-platform speech-to-text server built in Go with HTTP API and MCP (Model Context Protocol) support. Features local offline transcription using Vosk with real-time streaming capabilities. Can run as a CLI tool, HTTP server, or MCP server.
 
 ## Current Status
 
-**✅ WORKING** - Diaz is fully functional for real-time speech-to-text transcription!
+**✅ CLI MODE WORKING** - Diaz is fully functional as a CLI transcription tool!
+**🚧 SERVER MODE** - HTTP and MCP server implementation in progress
 
-### Implemented Features
+### Implemented Features (CLI Mode)
 
 - ✅ **Real-time Audio Capture** - Multi-platform audio input via malgo
 - ✅ **Speech Recognition** - Offline transcription using Vosk
@@ -19,6 +20,12 @@ A real-time speech-to-text application built in Go that captures microphone audi
 - ✅ **CLI Tools** - Model selection, downloads, default configuration
 - ✅ **Multiple Output Formats** - JSON, plain text, or interactive console output
 - ✅ **Voice Activity Detection** - Energy-based VAD with configurable silence delay
+
+### Planned Features (Server Mode)
+
+- 🚧 **MCP Server** - Model Context Protocol support for AI assistants
+- 🚧 **Multi-client Support** - Handle concurrent transcription sessions
+- 🚧 **Cross-platform Deployment** - systemd, launchd, Windows service, Docker
 
 ## Quick Start
 
@@ -131,9 +138,22 @@ A real-time speech-to-text application built in Go that captures microphone audi
 ./build/diaz --help
 ```
 
+## Server Mode (Coming Soon)
+
+
+### MCP Server
+```bash
+# Start MCP server (stdio transport for local AI assistants)
+./build/diaz --mode mcp
+
+# MCP server with HTTP transport
+./build/diaz --mode mcp --transport http --port 8081
+```
+
+
 ## Architecture
 
-### Current Implementation
+### Current Implementation (CLI Mode)
 
 ```
 diaz/
@@ -144,14 +164,16 @@ diaz/
 │   │   ├── capture.go             # Audio config & interface
 │   │   ├── malgo_capturer.go      # Malgo implementation
 │   │   ├── device.go              # Device enumeration
-│   │   └── buffer.go              # Ring buffer for streaming
+│   │   ├── buffer.go              # Ring buffer for streaming
+│   │   └── vad.go                 # Voice Activity Detection
 │   ├── stt/
 │   │   ├── engine.go              # STT engine interface
 │   │   └── vosk_engine.go         # Vosk implementation
 │   ├── models/
 │   │   └── manager.go             # Model download/management
 │   └── output/
-│       └── console.go             # Console output formatting
+│       ├── console.go             # Console output formatting
+│       └── formatter.go           # JSON/text formatters
 ├── models/                        # Downloaded models stored here
 ├── scripts/
 │   └── install-vosk-lib.sh        # Vosk library installer
@@ -185,6 +207,14 @@ diaz/
 - Final transcriptions with numbering
 - Confidence scores
 - Error reporting
+- JSON/text formatters with event logging
+
+**Server Components** (`internal/server`) - Planned
+- HTTP API with RESTful endpoints and WebSocket streaming
+- MCP server with stdio/HTTP transports
+- Session management for multi-client support
+- STT engine pooling for concurrent requests
+- Authentication, rate limiting, monitoring
 
 ## Development Roadmap
 
@@ -200,33 +230,60 @@ diaz/
 - [x] Real-time transcription pipeline
 - [x] Adaptive buffering for model sizes
 
-### 🚧 Phase 3: Enhancement (IN PROGRESS)
-**Completed:**
+### ✅ Phase 3: CLI Enhancement (COMPLETED)
 - [x] Multiple output formats (JSON, plain text) with extensible interface
 - [x] Voice Activity Detection (VAD) for better pause detection
 - [x] VAD silence delay - configurable delay after speech before returning to silence mode
-- [ ] Timestamp support in transcriptions
+- [x] JSON event logging for VAD state changes
 
-**Next Priority Items:**
+### 🚧 Phase 4: Server Architecture (IN PROGRESS - CURRENT PRIORITY)
 
-- [ ] Configuration file support (~/.diazrc)
-- [ ] Audio input device selection flag
+**Goal**: Transform Diaz into a server-based STT service with MCP interfaces
+
+**P0 do first**
+- [ ] Configuration file support (~/.diazrc or /etc/diaz/config.yaml)
+- [ ] Audio input device selection (CLI mode)
+
+**Priority 1: MCP Server Implementation**
+- [ ] MCP protocol integration (Model Context Protocol)
+- [ ] MCP server endpoint for context-aware transcription
+- [ ] Tool registration for STT capabilities
+- [ ] Resource management for audio streams
+- [ ] MCP-specific error handling and responses
+
+**Priority 2: Cross-Platform Server Deployment**
+- [ ] Systemd service files (Linux)
+- [ ] Launchd plist (macOS)
+- [ ] Windows service support
 
 
-### 📋 Phase 4: Advanced Features (PLANNED)
-- [ ] Real-time streaming API (WebSocket/HTTP)
-- [ ] Custom vocabulary/word lists
+**Priority 5: Monitoring & Observability**
+- [ ] Prometheus metrics endpoint
+- [ ] Structured logging (JSON logs)
+- [ ] Request tracing
+- [ ] Performance metrics (latency, throughput)
+- [ ] Audio quality metrics
+
+### 📋 Phase 5: Advanced Features (PLANNED)
+- [ ] Custom vocabulary/word lists per request
+- [ ] Language detection and multi-language support
+- [ ] Speaker diarization (who said what)
 - [ ] Punctuation and capitalization improvements
 
-### 🔧 Phase 5: Optimization (FUTURE)
+
+### 🔧 Phase 6: Production Readiness (FUTURE)
 - [ ] Static linking for all platforms
 - [ ] Binary size optimization
 - [ ] Performance profiling and tuning
 - [ ] Memory usage optimization
 - [ ] Cross-platform builds (macOS, Windows ARM)
-- [ ] Docker container
-- [ ] CI/CD pipeline
+- [ ] CI/CD pipeline with automated testing
+- [ ] Load testing and benchmarking
+- [ ] Security audit (input validation, DoS protection)
+- [ ] API documentation (OpenAPI/Swagger)
+- [ ] Client SDKs (Python, JavaScript, Go)
 
+---
 ## Installation
 
 See [INSTALL.md](INSTALL.md) for detailed installation instructions including:
