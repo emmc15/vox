@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -896,6 +897,35 @@ func runMCPServer() error {
 
 	fmt.Fprintf(os.Stderr, "Using model: %s\n", selectedModel)
 	fmt.Fprintf(os.Stderr, "Model path: %s\n\n", modelPath)
+
+	// Get absolute path to diaz binary
+	execPath, err := os.Executable()
+	if err != nil {
+		execPath = "./build/diaz"
+	}
+
+	// Print MCP client configuration
+	type MCPServerConfig struct {
+		Command string   `json:"command"`
+		Args    []string `json:"args"`
+	}
+	type MCPClientConfig struct {
+		MCPServers map[string]MCPServerConfig `json:"mcpServers"`
+	}
+
+	clientConfig := MCPClientConfig{
+		MCPServers: map[string]MCPServerConfig{
+			"diaz-stt": {
+				Command: execPath,
+				Args:    []string{"--mode", "mcp", "--model", selectedModel},
+			},
+		},
+	}
+
+	configJSON, err := json.MarshalIndent(clientConfig, "", "  ")
+	if err == nil {
+		fmt.Fprintf(os.Stderr, "MCP Client Configuration:\n%s\n\n", string(configJSON))
+	}
 
 	// Create MCP server
 	serverConfig := mcp.Config{
