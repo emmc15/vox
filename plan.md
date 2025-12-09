@@ -37,7 +37,7 @@ Extracted methods:
 
 ---
 
-### ⏭️ Step 3: Transcriber
+### ✅ Step 3: Transcriber
 **File**: `internal/app/transcriber.go`
 
 Extract main transcription loop logic:

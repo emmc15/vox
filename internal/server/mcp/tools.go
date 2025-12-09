@@ -10,11 +10,11 @@ import (
 )
 
 type TranscribeArgs struct {
-	Audio            string  `json:"audio" jsonschema:"required,description=Base64-encoded audio data (16kHz mono 16-bit PCM)"`
-	Model            string  `json:"model,omitempty" jsonschema:"description=Model name to use for transcription"`
-	VadEnabled       *bool   `json:"vad_enabled,omitempty" jsonschema:"description=Enable Voice Activity Detection (default: true)"`
-	VadThreshold     float64 `json:"vad_threshold,omitempty" jsonschema:"description=VAD energy threshold 0.001-0.1 (default: 0.01)"`
-	VadSilenceDelay  float64 `json:"vad_silence_delay,omitempty" jsonschema:"description=Seconds to wait after speech ends (default: 5.0)"`
+	Audio           string  `json:"audio" jsonschema:"required,description=Base64-encoded audio data (16kHz mono 16-bit PCM)"`
+	Model           string  `json:"model,omitempty" jsonschema:"description=Model name to use for transcription"`
+	VadEnabled      *bool   `json:"vad_enabled,omitempty" jsonschema:"description=Enable Voice Activity Detection (default: true)"`
+	VadThreshold    float64 `json:"vad_threshold,omitempty" jsonschema:"description=VAD energy threshold 0.001-0.1 (default: 0.01)"`
+	VadSilenceDelay float64 `json:"vad_silence_delay,omitempty" jsonschema:"description=Seconds to wait after speech ends (default: 5.0)"`
 }
 
 type ListModelsArgs struct{}
