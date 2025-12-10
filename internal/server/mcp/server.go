@@ -9,10 +9,13 @@ import (
 )
 
 type Config struct {
-	ServerName    string
-	ServerVersion string
-	ModelPath     string
-	DefaultModel  string
+	ServerName      string
+	ServerVersion   string
+	ModelPath       string
+	DefaultModel    string
+	VADThreshold    float64
+	VADSilenceDelay float64
+	VADEnabled      bool
 }
 
 type Server struct {
@@ -60,6 +63,15 @@ func (s *Server) registerTools() {
 	sdk.AddTool(s.mcpServer, &sdk.Tool{
 		Name:        "transcribe_audio",
 		Description: "Transcribe audio with Voice Activity Detection support",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"model":             map[string]string{"type": "string"},
+				"vad_enabled":       map[string]interface{}{"type": []string{"boolean", "null"}},
+				"vad_threshold":     map[string]string{"type": "number"},
+				"vad_silence_delay": map[string]string{"type": "number"},
+			},
+		},
 	}, s.handleTranscribeAudio)
 
 	sdk.AddTool(s.mcpServer, &sdk.Tool{

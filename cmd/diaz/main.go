@@ -66,7 +66,7 @@ func main() {
 
 	// Handle MCP server mode
 	if *mode == "mcp" {
-		handler := app.NewMCPHandler(*modelName, Version, GitCommit)
+		handler := app.NewMCPHandler(*modelName, Version, GitCommit, *vadThreshold, *vadSilenceDelay, *enableVAD)
 		if err := handler.Run(); err != nil {
 			fmt.Fprintf(os.Stderr, "MCP server error: %v\n", err)
 			os.Exit(1)

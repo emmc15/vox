@@ -28,8 +28,11 @@ func (s *Server) handleTranscribeAudio(ctx context.Context, req *sdk.CallToolReq
 
 	// Setup VAD
 	vadConfig := audio.DefaultVADConfig()
+	// Use args if provided, otherwise use server config defaults
 	if args.VadThreshold > 0 {
 		vadConfig.EnergyThreshold = args.VadThreshold
+	} else if s.config.VADThreshold > 0 {
+		vadConfig.EnergyThreshold = s.config.VADThreshold
 	}
 	vad := audio.NewVAD(vadConfig)
 
@@ -42,7 +45,7 @@ func (s *Server) handleTranscribeAudio(ctx context.Context, req *sdk.CallToolReq
 		return nil, nil, fmt.Errorf("failed to start capture: %w", err)
 	}
 
-	// Record until second silence
+	// Stop capturing when we detect silence after speech
 	for {
 		select {
 		case sample := <-capturer.Samples():
@@ -82,7 +85,7 @@ transcribe:
 	return &sdk.CallToolResult{
 		Content: []sdk.Content{
 			&sdk.TextContent{Text: finalResult.Text},
-			&sdk.TextContent{Text: fmt.Sprintf("Confidence: %.2f, Duration: N/A", finalResult.Confidence)},
+			//&sdk.TextContent{Text: fmt.Sprintf("Confidence: %.2f, Duration: N/A", finalResult.Confidence)},
 		},
 	}, nil, nil
 }

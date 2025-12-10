@@ -13,17 +13,23 @@ import (
 
 // MCPHandler handles MCP server operations
 type MCPHandler struct {
-	modelName string
-	version   string
-	gitCommit string
+	modelName       string
+	version         string
+	gitCommit       string
+	vadThreshold    float64
+	vadSilenceDelay float64
+	vadEnabled      bool
 }
 
 // NewMCPHandler creates a new MCP handler
-func NewMCPHandler(modelName, version, gitCommit string) *MCPHandler {
+func NewMCPHandler(modelName, version, gitCommit string, vadThreshold, vadSilenceDelay float64, vadEnabled bool) *MCPHandler {
 	return &MCPHandler{
-		modelName: modelName,
-		version:   version,
-		gitCommit: gitCommit,
+		modelName:       modelName,
+		version:         version,
+		gitCommit:       gitCommit,
+		vadThreshold:    vadThreshold,
+		vadSilenceDelay: vadSilenceDelay,
+		vadEnabled:      vadEnabled,
 	}
 }
 
@@ -116,10 +122,13 @@ func (h *MCPHandler) Run() error {
 
 	// Create MCP server
 	serverConfig := mcp.Config{
-		ServerName:    "diaz-mcp",
-		ServerVersion: h.version,
-		ModelPath:     modelPath,
-		DefaultModel:  selectedModel,
+		ServerName:      "diaz-mcp",
+		ServerVersion:   h.version,
+		ModelPath:       modelPath,
+		DefaultModel:    selectedModel,
+		VADThreshold:    h.vadThreshold,
+		VADSilenceDelay: h.vadSilenceDelay,
+		VADEnabled:      h.vadEnabled,
 	}
 
 	server, err := mcp.NewServer(serverConfig)

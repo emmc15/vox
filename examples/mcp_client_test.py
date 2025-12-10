@@ -3,30 +3,12 @@
 MCP Client Test Script for Diaz STT Server
 
 This script demonstrates how to interact with the Diaz MCP server
-for speech-to-text transcription.
+for speech-to-text transcription via microphone capture.
 """
 
 import json
 import subprocess
 import sys
-import base64
-import wave
-import struct
-
-def create_test_audio():
-    """Create a simple test audio file (16kHz mono 16-bit PCM)"""
-    # Create 1 second of silence as test audio
-    sample_rate = 16000
-    duration = 1.0  # seconds
-    samples = int(sample_rate * duration)
-
-    # Generate silence (zeros)
-    audio_data = bytearray()
-    for _ in range(samples):
-        # 16-bit PCM (2 bytes per sample)
-        audio_data.extend(struct.pack('<h', 0))
-
-    return bytes(audio_data)
 
 def send_request(proc, request):
     """Send a JSON-RPC request to the MCP server"""
@@ -36,10 +18,16 @@ def send_request(proc, request):
 
 def read_response(proc):
     """Read a JSON-RPC response from the MCP server"""
-    line = proc.stdout.readline()
-    if not line:
-        return None
-    return json.loads(line.decode('utf-8'))
+    while True:
+        line = proc.stdout.readline()
+        if not line:
+            return None
+        try:
+            return json.loads(line.decode('utf-8'))
+        except json.JSONDecodeError:
+            # Skip non-JSON lines (server logs)
+            print(f"[Server log] {line.decode('utf-8').strip()}", file=sys.stderr)
+            continue
 
 def main():
     # Start the MCP server
@@ -98,23 +86,15 @@ def main():
         response = read_response(proc)
         print(f"Models: {json.dumps(response, indent=2)}")
 
-        # 4. Transcribe audio (using test audio)
-        print("\n4. Transcribing audio...")
-        audio_data = create_test_audio()
-        audio_base64 = base64.b64encode(audio_data).decode('utf-8')
-
+        # 4. Transcribe audio (captures from microphone)
+        print("\n4. Transcribing audio from microphone (speak now)...")
         transcribe_request = {
             "jsonrpc": "2.0",
             "id": 4,
             "method": "tools/call",
             "params": {
                 "name": "transcribe_audio",
-                "arguments": {
-                    "audio": audio_base64,
-                    "vad_enabled": True,
-                    "vad_threshold": 0.01,
-                    "vad_silence_delay": 2.0
-                }
+                "arguments": {}
             }
         }
         send_request(proc, transcribe_request)
