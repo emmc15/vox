@@ -34,6 +34,7 @@ func (s *Server) handleTranscribeAudio(ctx context.Context, req *sdk.CallToolReq
 	vad := audio.NewVAD(vadConfig)
 
 	silenceCount := 0
+	speechStarted := false
 	var audioBuffer []byte
 
 	// Start capture
@@ -46,10 +47,13 @@ func (s *Server) handleTranscribeAudio(ctx context.Context, req *sdk.CallToolReq
 		select {
 		case sample := <-capturer.Samples():
 			audioBuffer = append(audioBuffer, sample.Data...)
-			_, _, speechEnded := vad.ProcessFrame(sample.Data)
-			if speechEnded {
+			isSpeech, _, speechEnded := vad.ProcessFrame(sample.Data)
+			if isSpeech {
+				speechStarted = true
+			}
+			if speechEnded && speechStarted {
 				silenceCount++
-				if silenceCount >= 2 {
+				if silenceCount >= 1 {
 					goto transcribe
 				}
 			}
