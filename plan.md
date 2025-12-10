@@ -51,7 +51,7 @@ Extract main transcription loop logic:
 
 ---
 
-### ⏭️ Step 4: MCP Server Handler (optional)
+### ✅ Step 4: MCP Server Handler (optional)
 **File**: `internal/app/mcp_handler.go`
 
 Extract:
