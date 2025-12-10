@@ -1,7 +1,6 @@
 package audio
 
 import (
-	"log"
 	"math"
 )
 
@@ -53,7 +52,7 @@ func (v *VAD) ProcessFrame(audioData []byte) (bool, bool, bool) {
 	energy := calculateEnergy(audioData)
 
 	// DEBUG: Log energy levels
-	log.Printf("[VAD] Energy: %.6f | Threshold: %.6f | Speech: %v", energy, v.config.EnergyThreshold, energy > v.config.EnergyThreshold)
+	// log.Printf("[VAD] Energy: %.6f | Threshold: %.6f | Speech: %v", energy, v.config.EnergyThreshold, energy > v.config.EnergyThreshold)
 
 	// Detect if current frame contains speech based on energy
 	frameHasSpeech := energy > v.config.EnergyThreshold

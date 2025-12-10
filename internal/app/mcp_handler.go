@@ -95,6 +95,25 @@ func (h *MCPHandler) Run() error {
 		fmt.Fprintf(os.Stderr, "MCP Client Configuration:\n%s\n\n", string(configJSON))
 	}
 
+	// Print Claude Code add command
+	type ClaudeCodeConfig struct {
+		Type    string   `json:"type"`
+		Command string   `json:"command"`
+		Args    []string `json:"args"`
+	}
+
+	claudeConfig := ClaudeCodeConfig{
+		Type:    "stdio",
+		Command: execPath,
+		Args:    []string{"--mode", "mcp", "--model", selectedModel},
+	}
+
+	claudeJSON, err := json.Marshal(claudeConfig)
+	if err == nil {
+		fmt.Fprintf(os.Stderr, "Add to Claude Code:\n")
+		fmt.Fprintf(os.Stderr, "claude mcp add-json stt '%s'\n\n", string(claudeJSON))
+	}
+
 	// Create MCP server
 	serverConfig := mcp.Config{
 		ServerName:    "diaz-mcp",

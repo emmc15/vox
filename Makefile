@@ -177,7 +177,7 @@ uninstall:
 ## run: Build and run the application
 run: build
 	@echo "$(COLOR_BLUE)Running $(APP_NAME)...$(COLOR_RESET)"
-	./$(BUILD_DIR)/$(APP_NAME) -mode mcp
+	./$(BUILD_DIR)/$(APP_NAME)
 
 ## dev: Run in development mode (with race detector)
 dev:
