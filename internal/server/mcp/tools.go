@@ -2,15 +2,14 @@ package mcp
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 
+	"github.com/emmett/diaz/internal/audio"
 	"github.com/emmett/diaz/internal/models"
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 type TranscribeArgs struct {
-	Audio           string  `json:"audio" jsonschema:"required"`
 	Model           string  `json:"model,omitempty"`
 	VadEnabled      *bool   `json:"vad_enabled,omitempty"`
 	VadThreshold    float64 `json:"vad_threshold,omitempty"`
@@ -20,16 +19,52 @@ type TranscribeArgs struct {
 type ListModelsArgs struct{}
 
 func (s *Server) handleTranscribeAudio(ctx context.Context, req *sdk.CallToolRequest, args TranscribeArgs) (*sdk.CallToolResult, any, error) {
-	// Decode base64 audio
-	audioData, err := base64.StdEncoding.DecodeString(args.Audio)
+	// Start audio capture
+	capturer, err := audio.NewCapturer(audio.DefaultConfig())
 	if err != nil {
-		return nil, nil, fmt.Errorf("invalid base64 audio: %w", err)
+		return nil, nil, fmt.Errorf("failed to create capturer: %w", err)
+	}
+	defer capturer.Stop()
+
+	// Setup VAD
+	vadConfig := audio.DefaultVADConfig()
+	if args.VadThreshold > 0 {
+		vadConfig.EnergyThreshold = args.VadThreshold
+	}
+	vad := audio.NewVAD(vadConfig)
+
+	silenceCount := 0
+	var audioBuffer []byte
+
+	// Start capture
+	if err := capturer.Start(ctx); err != nil {
+		return nil, nil, fmt.Errorf("failed to start capture: %w", err)
 	}
 
-	// TODO: Process VAD parameters from args
+	// Record until second silence
+	for {
+		select {
+		case sample := <-capturer.Samples():
+			audioBuffer = append(audioBuffer, sample.Data...)
+			_, _, speechEnded := vad.ProcessFrame(sample.Data)
+			if speechEnded {
+				silenceCount++
+				if silenceCount >= 2 {
+					goto transcribe
+				}
+			}
+		case err := <-capturer.Errors():
+			return nil, nil, fmt.Errorf("capture error: %w", err)
+		case <-ctx.Done():
+			return nil, nil, ctx.Err()
+		}
+	}
+
+transcribe:
+	capturer.Stop()
 
 	// Process audio through STT engine
-	_, err = s.sttEngine.ProcessAudio(ctx, audioData)
+	_, err = s.sttEngine.ProcessAudio(ctx, audioBuffer)
 	if err != nil {
 		return nil, nil, fmt.Errorf("transcription failed: %w", err)
 	}
