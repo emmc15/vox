@@ -54,35 +54,48 @@ func (v *VAD) ProcessFrame(audioData []byte) (bool, bool, bool) {
 	// DEBUG: Log energy levels
 	// log.Printf("[VAD] Energy: %.6f | Threshold: %.6f | Speech: %v", energy, v.config.EnergyThreshold, energy > v.config.EnergyThreshold)
 
-	// Detect if current frame contains speech based on energy
-	frameHasSpeech := energy > v.config.EnergyThreshold
-
 	speechStarted := false
 	speechEnded := false
 
-	if frameHasSpeech {
-		// Speech detected in frame
-		v.speechFrameCount++
-		v.silenceFrameCount = 0
+	// Hysteresis: use higher threshold to resume speech detection
+	resumeThreshold := v.config.EnergyThreshold * 1.5
 
-		// Check if we've crossed the speech threshold
-		if !v.isSpeaking && v.speechFrameCount >= v.config.SpeechFrames {
-			v.isSpeaking = true
-			speechStarted = true
+	if v.isSpeaking {
+		// Currently speaking: use hysteresis for silence detection
+		if energy > resumeThreshold {
+			// Strong speech: reset silence counter
+			v.silenceFrameCount = 0
+			v.speechFrameCount++
+		} else if energy <= v.config.EnergyThreshold {
+			// Below threshold: count as silence
+			v.silenceFrameCount++
+			// Don't reset speechFrameCount - allow brief dips
 		}
-	} else {
-		// Silence detected in frame
-		v.silenceFrameCount++
-		v.speechFrameCount = 0
+		// Energy between thresholds: don't change counters (dead zone)
 
 		// Check if we've crossed the silence threshold
-		if v.isSpeaking && v.silenceFrameCount >= v.config.SilenceFrames {
+		if v.silenceFrameCount >= v.config.SilenceFrames {
 			v.isSpeaking = false
 			speechEnded = true
 		}
+	} else {
+		// Not speaking: use normal threshold for speech start
+		if energy > v.config.EnergyThreshold {
+			v.speechFrameCount++
+			v.silenceFrameCount = 0
+
+			// Check if we've crossed the speech threshold
+			if v.speechFrameCount >= v.config.SpeechFrames {
+				v.isSpeaking = true
+				speechStarted = true
+			}
+		} else {
+			v.silenceFrameCount++
+			v.speechFrameCount = 0
+		}
 	}
 
-	v.lastSpeechDetection = frameHasSpeech
+	v.lastSpeechDetection = energy > v.config.EnergyThreshold
 	return v.isSpeaking, speechStarted, speechEnded
 }
 

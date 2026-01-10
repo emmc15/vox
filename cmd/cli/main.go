@@ -24,7 +24,7 @@ var (
 	modelName       = flag.String("model", "", "Use a specific model (default: vosk-model-small-en-us-0.15)")
 	selectModel     = flag.Bool("select-model", false, "Interactively select a model to use")
 	setDefault      = flag.String("set-default", "", "Set a model as the default")
-	outputFormat    = flag.String("format", "json", "Output format: console, json, text")
+	outputFormat    = flag.String("format", "console", "Output format: console, json, text")
 	outputFile      = flag.String("output", "", "Output file (default: stdout)")
 	enableVAD       = flag.Bool("vad", true, "Enable Voice Activity Detection for better pause handling")
 	vadThreshold    = flag.Float64("vad-threshold", 0.01, "VAD energy threshold (0.001-0.1, lower=more sensitive)")

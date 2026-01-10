@@ -66,9 +66,8 @@ func (v *VoskEngine) Initialize(config Config) error {
 	if config.MaxAlternatives > 0 {
 		v.recognizer.SetMaxAlternatives(config.MaxAlternatives)
 	}
-	if config.ShowWords {
-		v.recognizer.SetWords(1)
-	}
+	// Always enable word results to get confidence scores
+	v.recognizer.SetWords(1)
 
 	v.config = config
 	v.initialized = true
