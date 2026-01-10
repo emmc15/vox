@@ -1,13 +1,15 @@
 # Diaz - Speech-to-Text Application Makefile
 # Builds self-contained binaries for multiple platforms
 
-# Application name
-APP_NAME := diaz
+# Application names
+APP_CLI := diaz-cli
+APP_MCP := diaz-mcp
 VERSION := 0.1.0
 
 # Directories
 BUILD_DIR := build
-CMD_DIR := cmd/$(APP_NAME)
+CMD_CLI_DIR := cmd/cli
+CMD_MCP_DIR := cmd/mcp
 INTERNAL_DIR := internal
 MODELS_DIR := models
 
@@ -36,11 +38,8 @@ GOOS ?= $(shell go env GOOS)
 GOARCH ?= $(shell go env GOARCH)
 
 # Binary names
-BINARY_LINUX_AMD64 := $(BUILD_DIR)/$(APP_NAME)-linux-amd64
-BINARY_LINUX_ARM64 := $(BUILD_DIR)/$(APP_NAME)-linux-arm64
-BINARY_DARWIN_AMD64 := $(BUILD_DIR)/$(APP_NAME)-darwin-amd64
-BINARY_DARWIN_ARM64 := $(BUILD_DIR)/$(APP_NAME)-darwin-arm64
-BINARY_WINDOWS_AMD64 := $(BUILD_DIR)/$(APP_NAME)-windows-amd64.exe
+BINARY_CLI := $(BUILD_DIR)/$(APP_CLI)
+BINARY_MCP := $(BUILD_DIR)/$(APP_MCP)
 
 # Colors for output
 COLOR_RESET := \033[0m
@@ -49,9 +48,7 @@ COLOR_GREEN := \033[32m
 COLOR_YELLOW := \033[33m
 COLOR_BLUE := \033[34m
 
-.PHONY: all build clean test fmt format vet lint deps help install run dev
-.PHONY: build-linux build-darwin build-windows build-all
-.PHONY: docker-build docker-build-all
+.PHONY: all build build-cli build-mcp clean test fmt format vet lint deps help install run-cli run-mcp dev-cli dev-mcp
 
 ## Default target
 all: clean deps build
@@ -63,126 +60,67 @@ help:
 	@echo "$(COLOR_BOLD)Available targets:$(COLOR_RESET)"
 	@grep -E '^## ' $(MAKEFILE_LIST) | sed 's/##/$(COLOR_GREEN)/' | column -t -s ':' | sed 's/$$/$(COLOR_RESET)/'
 
-## build: Build binary for current platform
-build: deps
-	@echo "$(COLOR_BLUE)Building $(APP_NAME) for $(GOOS)/$(GOARCH)...$(COLOR_RESET)"
+## build: Build both CLI and MCP binaries for current platform
+build: deps build-cli build-mcp
+
+## build-cli: Build CLI binary
+build-cli: deps
+	@echo "$(COLOR_BLUE)Building $(APP_CLI) for $(GOOS)/$(GOARCH)...$(COLOR_RESET)"
 	@mkdir -p $(BUILD_DIR)
 	CGO_ENABLED=$(CGO_ENABLED) \
 	CGO_CFLAGS="$(CGO_CFLAGS)" \
 	CGO_LDFLAGS="$(CGO_LDFLAGS)" \
 	GOOS=$(GOOS) \
 	GOARCH=$(GOARCH) \
-	go build -ldflags "$(LDFLAGS)" -o $(BUILD_DIR)/$(APP_NAME) ./$(CMD_DIR)
-	@echo "$(COLOR_GREEN)Build complete: $(BUILD_DIR)/$(APP_NAME)$(COLOR_RESET)"
+	go build -ldflags "$(LDFLAGS)" -o $(BINARY_CLI) ./$(CMD_CLI_DIR)
+	@echo "$(COLOR_GREEN)Build complete: $(BINARY_CLI)$(COLOR_RESET)"
 
-## build-linux: Build for Linux AMD64 (statically linked)
-build-linux:
-	@echo "$(COLOR_BLUE)Building for Linux AMD64 (static)...$(COLOR_RESET)"
+## build-mcp: Build MCP binary
+build-mcp: deps
+	@echo "$(COLOR_BLUE)Building $(APP_MCP) for $(GOOS)/$(GOARCH)...$(COLOR_RESET)"
 	@mkdir -p $(BUILD_DIR)
-	CGO_ENABLED=1 \
-	GOOS=linux \
-	GOARCH=amd64 \
-	CC=gcc \
-	CGO_LDFLAGS="$(CGO_LDFLAGS_LINUX)" \
-	go build -ldflags "$(LDFLAGS) -extldflags '-static'" \
-		-tags 'osusergo netgo static_build' \
-		-o $(BINARY_LINUX_AMD64) ./$(CMD_DIR)
-	@echo "$(COLOR_GREEN)Built: $(BINARY_LINUX_AMD64)$(COLOR_RESET)"
+	CGO_ENABLED=$(CGO_ENABLED) \
+	CGO_CFLAGS="$(CGO_CFLAGS)" \
+	CGO_LDFLAGS="$(CGO_LDFLAGS)" \
+	GOOS=$(GOOS) \
+	GOARCH=$(GOARCH) \
+	go build -ldflags "$(LDFLAGS)" -o $(BINARY_MCP) ./$(CMD_MCP_DIR)
+	@echo "$(COLOR_GREEN)Build complete: $(BINARY_MCP)$(COLOR_RESET)"
 
-## build-linux-arm64: Build for Linux ARM64
-build-linux-arm64:
-	@echo "$(COLOR_BLUE)Building for Linux ARM64...$(COLOR_RESET)"
-	@mkdir -p $(BUILD_DIR)
-	CGO_ENABLED=1 \
-	GOOS=linux \
-	GOARCH=arm64 \
-	CC=aarch64-linux-gnu-gcc \
-	go build -ldflags "$(LDFLAGS)" \
-		-o $(BINARY_LINUX_ARM64) ./$(CMD_DIR)
-	@echo "$(COLOR_GREEN)Built: $(BINARY_LINUX_ARM64)$(COLOR_RESET)"
-
-## build-darwin: Build for macOS AMD64
-build-darwin:
-	@echo "$(COLOR_BLUE)Building for macOS AMD64...$(COLOR_RESET)"
-	@mkdir -p $(BUILD_DIR)
-	CGO_ENABLED=1 \
-	GOOS=darwin \
-	GOARCH=amd64 \
-	go build -ldflags "$(LDFLAGS)" \
-		-o $(BINARY_DARWIN_AMD64) ./$(CMD_DIR)
-	@echo "$(COLOR_GREEN)Built: $(BINARY_DARWIN_AMD64)$(COLOR_RESET)"
-
-## build-darwin-arm64: Build for macOS ARM64 (Apple Silicon)
-build-darwin-arm64:
-	@echo "$(COLOR_BLUE)Building for macOS ARM64 (Apple Silicon)...$(COLOR_RESET)"
-	@mkdir -p $(BUILD_DIR)
-	CGO_ENABLED=1 \
-	GOOS=darwin \
-	GOARCH=arm64 \
-	go build -ldflags "$(LDFLAGS)" \
-		-o $(BINARY_DARWIN_ARM64) ./$(CMD_DIR)
-	@echo "$(COLOR_GREEN)Built: $(BINARY_DARWIN_ARM64)$(COLOR_RESET)"
-
-## build-windows: Build for Windows AMD64
-build-windows:
-	@echo "$(COLOR_BLUE)Building for Windows AMD64...$(COLOR_RESET)"
-	@mkdir -p $(BUILD_DIR)
-	CGO_ENABLED=1 \
-	GOOS=windows \
-	GOARCH=amd64 \
-	CC=x86_64-w64-mingw32-gcc \
-	go build -ldflags "$(LDFLAGS)" \
-		-o $(BINARY_WINDOWS_AMD64) ./$(CMD_DIR)
-	@echo "$(COLOR_GREEN)Built: $(BINARY_WINDOWS_AMD64)$(COLOR_RESET)"
-
-## build-all: Build for all platforms
-build-all: build-linux build-darwin build-darwin-arm64 build-windows
-	@echo "$(COLOR_GREEN)All platform builds complete!$(COLOR_RESET)"
-	@ls -lh $(BUILD_DIR)/
-
-## docker-build-linux: Build Linux binary using Docker (ensures static linking)
-docker-build-linux:
-	@echo "$(COLOR_BLUE)Building Linux binary in Docker...$(COLOR_RESET)"
-	@mkdir -p $(BUILD_DIR)
-	docker run --rm \
-		-v $(PWD):/workspace \
-		-w /workspace \
-		-e CGO_ENABLED=1 \
-		golang:1.21-alpine \
-		sh -c 'apk add --no-cache gcc musl-dev && \
-		       go build -ldflags "$(LDFLAGS) -extldflags \"-static\"" \
-		       -tags "osusergo netgo static_build" \
-		       -o $(BINARY_LINUX_AMD64) ./$(CMD_DIR)'
-	@echo "$(COLOR_GREEN)Docker build complete: $(BINARY_LINUX_AMD64)$(COLOR_RESET)"
-
-## docker-build-all: Build all binaries using Docker
-docker-build-all:
-	@echo "$(COLOR_YELLOW)Note: Docker cross-compilation requires additional setup$(COLOR_RESET)"
-	@echo "$(COLOR_YELLOW)Currently only building Linux AMD64 in Docker$(COLOR_RESET)"
-	@$(MAKE) docker-build-linux
-
-## install: Install binary to system
+## install: Install binaries to system
 install: build
-	@echo "$(COLOR_BLUE)Installing $(APP_NAME)...$(COLOR_RESET)"
+	@echo "$(COLOR_BLUE)Installing binaries...$(COLOR_RESET)"
 	install -d $(DESTDIR)/usr/local/bin
-	install -m 755 $(BUILD_DIR)/$(APP_NAME) $(DESTDIR)/usr/local/bin/
-	@echo "$(COLOR_GREEN)Installed to /usr/local/bin/$(APP_NAME)$(COLOR_RESET)"
+	install -m 755 $(BINARY_CLI) $(DESTDIR)/usr/local/bin/
+	install -m 755 $(BINARY_MCP) $(DESTDIR)/usr/local/bin/
+	@echo "$(COLOR_GREEN)Installed to /usr/local/bin/$(COLOR_RESET)"
 
-## uninstall: Uninstall binary from system
+## uninstall: Uninstall binaries from system
 uninstall:
-	@echo "$(COLOR_BLUE)Uninstalling $(APP_NAME)...$(COLOR_RESET)"
-	rm -f /usr/local/bin/$(APP_NAME)
+	@echo "$(COLOR_BLUE)Uninstalling binaries...$(COLOR_RESET)"
+	rm -f /usr/local/bin/$(APP_CLI)
+	rm -f /usr/local/bin/$(APP_MCP)
 	@echo "$(COLOR_GREEN)Uninstalled$(COLOR_RESET)"
 
-## run: Build and run the application
-run: build
-	@echo "$(COLOR_BLUE)Running $(APP_NAME)...$(COLOR_RESET)"
-	./$(BUILD_DIR)/$(APP_NAME)
+## run-cli: Build and run the CLI application
+run-cli: build-cli
+	@echo "$(COLOR_BLUE)Running $(APP_CLI)...$(COLOR_RESET)"
+	./$(BINARY_CLI)
 
-## dev: Run in development mode (with race detector)
-dev:
-	@echo "$(COLOR_BLUE)Running in development mode...$(COLOR_RESET)"
-	go run -race ./$(CMD_DIR)
+## run-mcp: Build and run the MCP server
+run-mcp: build-mcp
+	@echo "$(COLOR_BLUE)Running $(APP_MCP)...$(COLOR_RESET)"
+	./$(BINARY_MCP)
+
+## dev-cli: Run CLI in development mode (with race detector)
+dev-cli:
+	@echo "$(COLOR_BLUE)Running CLI in development mode...$(COLOR_RESET)"
+	go run -race ./$(CMD_CLI_DIR)
+
+## dev-mcp: Run MCP in development mode (with race detector)
+dev-mcp:
+	@echo "$(COLOR_BLUE)Running MCP in development mode...$(COLOR_RESET)"
+	go run -race ./$(CMD_MCP_DIR)
 
 ## test: Run all tests
 test:
@@ -269,7 +207,8 @@ size:
 ## info: Show build information
 info:
 	@echo "$(COLOR_BOLD)Build Information:$(COLOR_RESET)"
-	@echo "  App Name:    $(APP_NAME)"
+	@echo "  CLI Binary:  $(APP_CLI)"
+	@echo "  MCP Binary:  $(APP_MCP)"
 	@echo "  Version:     $(VERSION)"
 	@echo "  Git Commit:  $(GIT_COMMIT)"
 	@echo "  Git Branch:  $(GIT_BRANCH)"
@@ -282,8 +221,8 @@ info:
 check: fmt vet lint test
 	@echo "$(COLOR_GREEN)All checks passed!$(COLOR_RESET)"
 
-## release: Build release binaries for all platforms
-release: clean check build-all
+## release: Build release binaries
+release: clean check build
 	@echo "$(COLOR_GREEN)Release build complete!$(COLOR_RESET)"
 	@$(MAKE) size
 
@@ -294,7 +233,11 @@ quick:
 	CGO_ENABLED=$(CGO_ENABLED) \
 	CGO_CFLAGS="$(CGO_CFLAGS)" \
 	CGO_LDFLAGS="$(CGO_LDFLAGS)" \
-	go build -ldflags "$(LDFLAGS)" -o $(BUILD_DIR)/$(APP_NAME) ./$(CMD_DIR)
+	go build -ldflags "$(LDFLAGS)" -o $(BINARY_CLI) ./$(CMD_CLI_DIR)
+	CGO_ENABLED=$(CGO_ENABLED) \
+	CGO_CFLAGS="$(CGO_CFLAGS)" \
+	CGO_LDFLAGS="$(CGO_LDFLAGS)" \
+	go build -ldflags "$(LDFLAGS)" -o $(BINARY_MCP) ./$(CMD_MCP_DIR)
 	@echo "$(COLOR_GREEN)Quick build complete$(COLOR_RESET)"
 
 ## install-vosk: Install Vosk library (Linux x86_64 only)

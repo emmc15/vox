@@ -16,10 +16,8 @@ var (
 	GitBranch = "unknown"
 )
 
-// CLI flags
 var (
 	configFile      = flag.String("config", "", "Path to configuration file (default: ~/.diazrc or /etc/diaz/config.yaml)")
-	mode            = flag.String("mode", "cli", "Operation mode: cli, mcp")
 	listModels      = flag.Bool("list-models", false, "List all available models for download")
 	listDownloaded  = flag.Bool("list-downloaded", false, "List all downloaded models")
 	downloadModel   = flag.String("download-model", "", "Download a specific model by name")
@@ -29,8 +27,8 @@ var (
 	outputFormat    = flag.String("format", "json", "Output format: console, json, text")
 	outputFile      = flag.String("output", "", "Output file (default: stdout)")
 	enableVAD       = flag.Bool("vad", true, "Enable Voice Activity Detection for better pause handling")
-	vadThreshold    = flag.Float64("vad-threshold", 0.001, "VAD energy threshold (0.001-0.1, lower=more sensitive)")
-	vadSilenceDelay = flag.Float64("vad-silence-delay", 5.0, "Delay in seconds after last speech before returning to silence")
+	vadThreshold    = flag.Float64("vad-threshold", 0.01, "VAD energy threshold (0.001-0.1, lower=more sensitive)")
+	vadSilenceDelay = flag.Float64("vad-silence-delay", 2.5, "Delay in seconds after last speech before returning to silence")
 	audioDevice     = flag.String("device", "", "Audio input device name (use --list-devices to see available devices)")
 	listDevices     = flag.Bool("list-devices", false, "List all available audio input devices")
 	showVersion     = flag.Bool("version", false, "Show version information")
@@ -40,41 +38,27 @@ var (
 func main() {
 	flag.Parse()
 
-	// Load configuration file
 	cfg, err := config.LoadWithFallback(*configFile)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: Failed to load config: %v\n", err)
 		cfg = config.DefaultConfig()
 	}
 
-	// Apply config values as defaults (CLI flags override if explicitly set)
 	applyConfigDefaults(cfg)
 
-	// Handle version flag
 	if *showVersion {
-		fmt.Printf("Diaz v%s\n", Version)
+		fmt.Printf("Diaz CLI v%s\n", Version)
 		fmt.Printf("  Commit:  %s\n", GitCommit)
 		fmt.Printf("  Branch:  %s\n", GitBranch)
 		fmt.Printf("  Built:   %s\n", BuildTime)
 		os.Exit(0)
 	}
 
-	fmt.Printf("Diaz v%s (commit: %s, branch: %s, built: %s)\n",
+	fmt.Printf("Diaz CLI v%s (commit: %s, branch: %s, built: %s)\n",
 		Version, GitCommit, GitBranch, BuildTime)
 	fmt.Println("Speech-to-Text Application")
 	fmt.Println()
 
-	// Handle MCP server mode
-	if *mode == "mcp" {
-		handler := app.NewMCPHandler(*modelName, Version, GitCommit, *vadThreshold, *vadSilenceDelay, *enableVAD)
-		if err := handler.Run(); err != nil {
-			fmt.Fprintf(os.Stderr, "MCP server error: %v\n", err)
-			os.Exit(1)
-		}
-		return
-	}
-
-	// Handle list devices flag
 	if *listDevices {
 		dm := app.NewDeviceManager()
 		if err := dm.ListDevices(); err != nil {
@@ -83,7 +67,6 @@ func main() {
 		return
 	}
 
-	// Handle model management commands
 	mgr := app.NewModelManager()
 
 	if *listModels {
@@ -118,54 +101,42 @@ func main() {
 		return
 	}
 
-	// Run main application
 	if err := run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
 }
 
-// applyConfigDefaults applies configuration values as defaults
-// CLI flags override config file values if explicitly set
 func applyConfigDefaults(cfg *config.Config) {
-	// Check if flags were explicitly set by user
 	flagsSet := make(map[string]bool)
 	flag.Visit(func(f *flag.Flag) {
 		flagsSet[f.Name] = true
 	})
 
-	// Apply config defaults only if flag was not explicitly set
 	if !flagsSet["model"] && cfg.Model.Default != "" {
 		*modelName = cfg.Model.Default
 	}
-
 	if !flagsSet["format"] && cfg.Output.Format != "" {
 		*outputFormat = cfg.Output.Format
 	}
-
 	if !flagsSet["output"] && cfg.Output.File != "" {
 		*outputFile = cfg.Output.File
 	}
-
 	if !flagsSet["vad"] {
 		*enableVAD = cfg.VAD.Enabled
 	}
-
 	if !flagsSet["vad-threshold"] && cfg.VAD.Threshold > 0 {
 		*vadThreshold = cfg.VAD.Threshold
 	}
-
 	if !flagsSet["vad-silence-delay"] && cfg.VAD.SilenceDelay > 0 {
 		*vadSilenceDelay = cfg.VAD.SilenceDelay
 	}
-
 	if !flagsSet["device"] && cfg.Audio.Device != "" {
 		*audioDevice = cfg.Audio.Device
 	}
 }
 
 func run() error {
-	// Handle model selection if needed
 	mgr := app.NewModelManager()
 	selectedModel := *modelName
 	if *selectModel {
@@ -176,7 +147,6 @@ func run() error {
 		}
 	}
 
-	// Create transcriber configuration
 	config := app.TranscriberConfig{
 		ModelName:       selectedModel,
 		OutputFormat:    *outputFormat,
@@ -188,7 +158,6 @@ func run() error {
 		AutoDownload:    *autoDownload,
 	}
 
-	// Create and run transcriber
 	transcriber := app.NewTranscriber(config)
 	return transcriber.Run()
 }
