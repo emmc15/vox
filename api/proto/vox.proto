@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+package vox;
+
+option go_package = "github.com/emmett/vox/api/proto;voxpb";
+
+// STT service for speech-to-text transcription
+service STT {
+  // Bidirectional streaming: client sends audio chunks, server returns transcriptions
+  rpc Transcribe(stream AudioChunk) returns (stream TranscriptResult);
+
+  // Unary: list available models
+  rpc ListModels(ListModelsRequest) returns (ListModelsResponse);
+}
+
+// TTS service for text-to-speech synthesis
+service TTS {
+  // Server streaming: client sends text, server returns audio chunks
+  rpc Synthesize(SynthesizeRequest) returns (stream AudioChunk);
+
+  // Unary: list available voices
+  rpc ListVoices(ListVoicesRequest) returns (ListVoicesResponse);
+}
+
+// Audio chunk for streaming
+message AudioChunk {
+  bytes data = 1;
+  int32 sample_rate = 2;
+  int32 channels = 3;
+}
+
+// Transcription result
+message TranscriptResult {
+  string text = 1;
+  bool is_final = 2;
+  float confidence = 3;
+  int64 timestamp_ms = 4;
+}
+
+// STT model info
+message Model {
+  string name = 1;
+  string description = 2;
+  int64 size_bytes = 3;
+  bool downloaded = 4;
+}
+
+message ListModelsRequest {}
+
+message ListModelsResponse {
+  repeated Model models = 1;
+  string default_model = 2;
+}
+
+// TTS synthesis request
+message SynthesizeRequest {
+  string text = 1;
+  string voice = 2;
+  float speed = 3;  // 1.0 = normal
+}
+
+// TTS voice info
+message Voice {
+  string id = 1;
+  string name = 2;
+  string language = 3;
+  string gender = 4;
+}
+
+message ListVoicesRequest {}
+
+message ListVoicesResponse {
+  repeated Voice voices = 1;
+  string default_voice = 2;
+}

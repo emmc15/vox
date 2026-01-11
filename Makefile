@@ -4,12 +4,14 @@
 # Application names
 APP_CLI := vox-cli
 APP_MCP := vox-mcp
+APP_SERVER := vox-server
 VERSION := 0.1.0
 
 # Directories
 BUILD_DIR := build
 CMD_CLI_DIR := cmd/cli
 CMD_MCP_DIR := cmd/mcp
+CMD_SERVER_DIR := cmd/server
 INTERNAL_DIR := internal
 MODELS_DIR := models
 
@@ -40,6 +42,7 @@ GOARCH ?= $(shell go env GOARCH)
 # Binary names
 BINARY_CLI := $(BUILD_DIR)/$(APP_CLI)
 BINARY_MCP := $(BUILD_DIR)/$(APP_MCP)
+BINARY_SERVER := $(BUILD_DIR)/$(APP_SERVER)
 
 # Colors for output
 COLOR_RESET := \033[0m
@@ -48,7 +51,7 @@ COLOR_GREEN := \033[32m
 COLOR_YELLOW := \033[33m
 COLOR_BLUE := \033[34m
 
-.PHONY: all build build-cli build-mcp clean test fmt format vet lint deps help install run-cli run-mcp dev-cli dev-mcp
+.PHONY: all build build-cli build-mcp build-grpc clean test fmt format vet lint deps help install run-cli run-mcp dev-cli dev-mcp proto
 
 ## Default target
 all: clean deps build
@@ -60,8 +63,8 @@ help:
 	@echo "$(COLOR_BOLD)Available targets:$(COLOR_RESET)"
 	@grep -E '^## ' $(MAKEFILE_LIST) | sed 's/##/$(COLOR_GREEN)/' | column -t -s ':' | sed 's/$$/$(COLOR_RESET)/'
 
-## build: Build both CLI and MCP binaries for current platform
-build: deps build-cli build-mcp
+## build: Build all binaries for current platform
+build: deps build-cli build-mcp build-server
 
 ## build-cli: Build CLI binary
 build-cli: deps
@@ -86,6 +89,18 @@ build-mcp: deps
 	GOARCH=$(GOARCH) \
 	go build -ldflags "$(LDFLAGS)" -o $(BINARY_MCP) ./$(CMD_MCP_DIR)
 	@echo "$(COLOR_GREEN)Build complete: $(BINARY_MCP)$(COLOR_RESET)"
+
+## build-server: Build gRPC server binary
+build-server: deps
+	@echo "$(COLOR_BLUE)Building $(APP_SERVER) for $(GOOS)/$(GOARCH)...$(COLOR_RESET)"
+	@mkdir -p $(BUILD_DIR)
+	CGO_ENABLED=$(CGO_ENABLED) \
+	CGO_CFLAGS="$(CGO_CFLAGS)" \
+	CGO_LDFLAGS="$(CGO_LDFLAGS)" \
+	GOOS=$(GOOS) \
+	GOARCH=$(GOARCH) \
+	go build -ldflags "$(LDFLAGS)" -o $(BINARY_SERVER) ./$(CMD_SERVER_DIR)
+	@echo "$(COLOR_GREEN)Build complete: $(BINARY_SERVER)$(COLOR_RESET)"
 
 ## install: Install binaries to system
 install: build
@@ -178,6 +193,26 @@ deps-update:
 	go get -u ./...
 	go mod tidy
 	@echo "$(COLOR_GREEN)Dependencies updated$(COLOR_RESET)"
+
+## proto: Generate Go code from protobuf definitions
+proto:
+	@echo "$(COLOR_BLUE)Generating protobuf code...$(COLOR_RESET)"
+	@if ! command -v protoc >/dev/null 2>&1; then \
+		echo "$(COLOR_YELLOW)protoc not found. Install with: apt install protobuf-compiler$(COLOR_RESET)"; \
+		exit 1; \
+	fi
+	@if ! command -v protoc-gen-go >/dev/null 2>&1; then \
+		echo "$(COLOR_YELLOW)Installing protoc-gen-go...$(COLOR_RESET)"; \
+		go install google.golang.org/protobuf/cmd/protoc-gen-go@latest; \
+	fi
+	@if ! command -v protoc-gen-go-grpc >/dev/null 2>&1; then \
+		echo "$(COLOR_YELLOW)Installing protoc-gen-go-grpc...$(COLOR_RESET)"; \
+		go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest; \
+	fi
+	protoc --go_out=. --go_opt=paths=source_relative \
+		--go-grpc_out=. --go-grpc_opt=paths=source_relative \
+		api/proto/vox.proto
+	@echo "$(COLOR_GREEN)Protobuf code generated$(COLOR_RESET)"
 
 ## clean: Remove build artifacts
 clean:
