@@ -22,6 +22,7 @@ var (
 var (
 	port        = flag.Int("port", 50051, "gRPC server port")
 	modelName   = flag.String("model", "", "STT model name (default: vosk-model-small-en-us-0.15)")
+	ttsModel    = flag.String("tts-model", "", "TTS model path (piper .onnx file)")
 	showVersion = flag.Bool("version", false, "Show version information")
 )
 
@@ -63,8 +64,9 @@ func main() {
 
 	// Create and start server
 	cfg := grpcserver.Config{
-		Port:      *port,
-		ModelPath: modelPath,
+		Port:         *port,
+		STTModelPath: modelPath,
+		TTSModelPath: *ttsModel,
 	}
 
 	server, err := grpcserver.NewServer(cfg)
