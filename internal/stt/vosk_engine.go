@@ -160,8 +160,16 @@ func (v *VoskEngine) Reset() error {
 		return fmt.Errorf("engine not initialized")
 	}
 
-	// Vosk automatically resets after FinalResult
-	// We can also create a new recognizer if needed
+	// Force reset by recreating the recognizer
+	if v.recognizer != nil {
+		v.recognizer.Free()
+	}
+	recognizer, err := vosk.NewRecognizer(v.model, float64(v.config.SampleRate))
+	if err != nil {
+		return fmt.Errorf("failed to recreate recognizer: %w", err)
+	}
+	v.recognizer = recognizer
+	v.recognizer.SetWords(1)
 	return nil
 }
 

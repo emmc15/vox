@@ -27,7 +27,7 @@ var (
 	outputFormat    = flag.String("format", "console", "Output format: console, json, text")
 	outputFile      = flag.String("output", "", "Output file (default: stdout)")
 	enableVAD       = flag.Bool("vad", true, "Enable Voice Activity Detection for better pause handling")
-	vadThreshold    = flag.Float64("vad-threshold", 0.01, "VAD energy threshold (0.001-0.1, lower=more sensitive)")
+	vadThreshold    = flag.Float64("vad-threshold", 0.1, "VAD energy threshold (0.001-0.1, lower=more sensitive)")
 	vadSilenceDelay = flag.Float64("vad-silence-delay", 2.5, "Delay in seconds after last speech before returning to silence")
 	audioDevice     = flag.String("device", "", "Audio input device name (use --list-devices to see available devices)")
 	listDevices     = flag.Bool("list-devices", false, "List all available audio input devices")

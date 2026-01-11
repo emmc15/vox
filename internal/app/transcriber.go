@@ -276,8 +276,13 @@ func (t *Transcriber) Run() error {
 						}
 					}
 
-					// Reset for next utterance
 					engine.Reset()
+					// Reset for next utterance
+					if formatter != nil {
+						formatter.WriteEvent("stt", "Ready for next utterance")
+					} else {
+						fmt.Printf("\n[Ready for next utterance]\n")
+					}
 					lastPartialText = ""
 					continue
 				}

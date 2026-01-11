@@ -53,8 +53,8 @@ func DefaultConfig() *Config {
 
 	// VAD defaults
 	cfg.VAD.Enabled = true
-	cfg.VAD.Threshold = 0.01
-	cfg.VAD.SilenceDelay = 5.0
+	cfg.VAD.Threshold = 0.1
+	cfg.VAD.SilenceDelay = 2.5
 
 	// Output defaults
 	cfg.Output.Format = "json"
