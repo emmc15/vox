@@ -15,7 +15,7 @@
 
 ## Installing Vosk API Library
 
-Diaz uses the Vosk speech recognition engine, which requires the native Vosk library to be installed.
+Vox uses the Vosk speech recognition engine, which requires the native Vosk library to be installed.
 
 ### Option 1: Automated Installation (Linux x86_64)
 
@@ -110,7 +110,7 @@ ls -l /usr/local/include/vosk_api.h
 pkg-config --libs --cflags vosk
 ```
 
-## Building Diaz
+## Building Vox
 
 Once Vosk is installed:
 
@@ -124,10 +124,10 @@ make build-all
 
 ## Downloading Speech Models
 
-On first run, Diaz will prompt you to download a speech recognition model:
+On first run, Vox will prompt you to download a speech recognition model:
 
 ```bash
-./build/diaz
+./build/vox
 ```
 
 The default model is `vosk-model-small-en-us-0.15` (40MB), which provides:
@@ -191,7 +191,7 @@ sudo usermod -a -G audio $USER
 
 After installation:
 
-1. Run Diaz: `./build/diaz`
+1. Run Vox: `./build/vox`
 2. Download a model when prompted
 3. Start speaking into your microphone
 4. See real-time transcriptions!

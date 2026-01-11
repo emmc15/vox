@@ -1,7 +1,7 @@
-# Diaz Configuration File Example
-# Copy this file to ~/.diazrc or /etc/diaz/config.yaml
+# Vox Configuration File Example
+# Copy this file to ~/.voxrc or /etc/vox/config.yaml
 #
-# Priority: CLI flags > ~/.diazrc > /etc/diaz/config.yaml > defaults
+# Priority: CLI flags > ~/.voxrc > /etc/vox/config.yaml > defaults
 # All settings are optional - defaults will be used if not specified
 
 # Model settings
@@ -30,13 +30,13 @@ output:
   format: "json"
 
   # Output file (empty = stdout)
-  # Example: "/var/log/diaz/transcriptions.json"
+  # Example: "/var/log/vox/transcriptions.json"
   file: ""
 
 # Audio settings
 audio:
   # Audio input device name or ID
-  # Use "diaz --list-devices" to see available devices
+  # Use "vox --list-devices" to see available devices
   # Empty = use system default device
   device: ""
   # Examples:

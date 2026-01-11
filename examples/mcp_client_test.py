@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-MCP Client Test Script for Diaz STT Server
+MCP Client Test Script for Vox STT Server
 
-This script demonstrates how to interact with the Diaz MCP server
+This script demonstrates how to interact with the Vox MCP server
 for speech-to-text transcription via microphone capture.
 """
 
@@ -31,9 +31,9 @@ def read_response(proc):
 
 def main():
     # Start the MCP server
-    print("Starting Diaz MCP server...")
+    print("Starting Vox MCP server...")
     proc = subprocess.Popen(
-        ['./build/diaz', '--mode', 'mcp'],
+        ['./build/vox', '--mode', 'mcp'],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE
@@ -52,7 +52,7 @@ def main():
                     "tools": {}
                 },
                 "clientInfo": {
-                    "name": "diaz-test-client",
+                    "name": "vox-test-client",
                     "version": "1.0.0"
                 }
             }

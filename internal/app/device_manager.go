@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/emmett/diaz/internal/audio"
+	"github.com/emmett/vox/internal/audio"
 )
 
 // DeviceManager handles audio device selection and listing
@@ -50,11 +50,11 @@ func (dm *DeviceManager) ListDevices() error {
 	}
 
 	fmt.Println("To use a specific device, run:")
-	fmt.Println("  diaz --device \"<device-name>\"")
+	fmt.Println("  vox --device \"<device-name>\"")
 	fmt.Println()
 	fmt.Println("Example:")
 	if len(devices) > 0 {
-		fmt.Printf("  diaz --device \"%s\"\n", devices[0].Name)
+		fmt.Printf("  vox --device \"%s\"\n", devices[0].Name)
 	}
 
 	return nil

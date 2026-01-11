@@ -9,10 +9,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/emmett/diaz/internal/audio"
-	"github.com/emmett/diaz/internal/models"
-	"github.com/emmett/diaz/internal/output"
-	"github.com/emmett/diaz/internal/stt"
+	"github.com/emmett/vox/internal/audio"
+	"github.com/emmett/vox/internal/models"
+	"github.com/emmett/vox/internal/output"
+	"github.com/emmett/vox/internal/stt"
 )
 
 // TranscriberConfig holds configuration for the transcription session

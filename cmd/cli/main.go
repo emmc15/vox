@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/emmett/diaz/internal/app"
-	"github.com/emmett/diaz/internal/config"
+	"github.com/emmett/vox/internal/app"
+	"github.com/emmett/vox/internal/config"
 )
 
 var (
@@ -17,7 +17,7 @@ var (
 )
 
 var (
-	configFile      = flag.String("config", "", "Path to configuration file (default: ~/.diazrc or /etc/diaz/config.yaml)")
+	configFile      = flag.String("config", "", "Path to configuration file (default: ~/.voxrc or /etc/vox/config.yaml)")
 	listModels      = flag.Bool("list-models", false, "List all available models for download")
 	listDownloaded  = flag.Bool("list-downloaded", false, "List all downloaded models")
 	downloadModel   = flag.String("download-model", "", "Download a specific model by name")
@@ -47,14 +47,14 @@ func main() {
 	applyConfigDefaults(cfg)
 
 	if *showVersion {
-		fmt.Printf("Diaz CLI v%s\n", Version)
+		fmt.Printf("Vox CLI v%s\n", Version)
 		fmt.Printf("  Commit:  %s\n", GitCommit)
 		fmt.Printf("  Branch:  %s\n", GitBranch)
 		fmt.Printf("  Built:   %s\n", BuildTime)
 		os.Exit(0)
 	}
 
-	fmt.Printf("Diaz CLI v%s (commit: %s, branch: %s, built: %s)\n",
+	fmt.Printf("Vox CLI v%s (commit: %s, branch: %s, built: %s)\n",
 		Version, GitCommit, GitBranch, BuildTime)
 	fmt.Println("Speech-to-Text Application")
 	fmt.Println()

@@ -1,6 +1,6 @@
-# Diaz MCP Server
+# Vox MCP Server
 
-Diaz implements the Model Context Protocol (MCP) for speech-to-text transcription, allowing AI assistants and other clients to use Diaz for voice transcription.
+Vox implements the Model Context Protocol (MCP) for speech-to-text transcription, allowing AI assistants and other clients to use Vox for voice transcription.
 
 ## Overview
 
@@ -16,13 +16,13 @@ The MCP server runs in stdio transport mode, communicating via JSON-RPC 2.0 mess
 
 ```bash
 # Make sure you have a model downloaded first
-./build/diaz --download-model vosk-model-small-en-us-0.15
+./build/vox --download-model vosk-model-small-en-us-0.15
 
 # Start the MCP server
-./build/diaz --mode mcp
+./build/vox --mode mcp
 
 # Or with a specific model
-./build/diaz --mode mcp --model vosk-model-en-us-0.22-lgraph
+./build/vox --mode mcp --model vosk-model-en-us-0.22-lgraph
 ```
 
 ### Test with Example Client
@@ -70,7 +70,7 @@ Response:
       }
     },
     "serverInfo": {
-      "name": "diaz-mcp",
+      "name": "vox-mcp",
       "version": "0.1.0"
     }
   }
@@ -218,8 +218,8 @@ Add to your Claude Desktop MCP configuration:
 ```json
 {
   "mcpServers": {
-    "diaz-stt": {
-      "command": "/path/to/diaz",
+    "vox-stt": {
+      "command": "/path/to/vox",
       "args": ["--mode", "mcp", "--model", "vosk-model-small-en-us-0.15"]
     }
   }
@@ -233,9 +233,9 @@ import subprocess
 import json
 import base64
 
-class DiazMCPClient:
-    def __init__(self, diaz_path='./build/diaz', model=None):
-        args = [diaz_path, '--mode', 'mcp']
+class VoxMCPClient:
+    def __init__(self, vox_path='./build/vox', model=None):
+        args = [vox_path, '--mode', 'mcp']
         if model:
             args.extend(['--model', model])
 
@@ -318,7 +318,7 @@ The MCP server processes audio synchronously (one request at a time) to ensure o
 
 Download the model first:
 ```bash
-./build/diaz --download-model vosk-model-small-en-us-0.15
+./build/vox --download-model vosk-model-small-en-us-0.15
 ```
 
 ### Connection timeout
@@ -338,5 +338,5 @@ Check:
 ## See Also
 
 - [MCP Protocol Specification](https://modelcontextprotocol.io/)
-- [Diaz README](README.md)
+- [Vox README](README.md)
 - [Configuration Guide](config.yaml.example)

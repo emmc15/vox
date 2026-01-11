@@ -1,4 +1,4 @@
-# diaz
+# vox
 make computer shit talk
 
 A cross-platform speech-to-text server built in Go with HTTP API and MCP (Model Context Protocol) support. Features local offline transcription using Vosk with real-time streaming capabilities. Can run as a CLI tool, HTTP server, or MCP server.
@@ -22,7 +22,7 @@ A cross-platform speech-to-text server built in Go with HTTP API and MCP (Model 
 - ✅ **CLI Tools** - Model selection, downloads, default configuration
 - ✅ **Multiple Output Formats** - JSON, plain text, or interactive console output
 - ✅ **Voice Activity Detection** - Energy-based VAD with configurable silence delay
-- ✅ **Configuration Files** - YAML config support (~/.diazrc, /etc/diaz/config.yaml)
+- ✅ **Configuration Files** - YAML config support (~/.voxrc, /etc/vox/config.yaml)
 - ✅ **Audio Device Selection** - Choose specific input devices
 
 **MCP Server:**
@@ -55,20 +55,20 @@ A cross-platform speech-to-text server built in Go with HTTP API and MCP (Model 
 
 3. **Run and download a model** (on first run):
    ```bash
-   ./build/diaz
+   ./build/vox
    ```
 
 ### Basic Usage
 
 ```bash
 # Start transcription with default model
-./build/diaz
+./build/vox
 
 # Interactive model selection
-./build/diaz --select-model
+./build/vox --select-model
 
 # Use a specific model
-./build/diaz --model vosk-model-en-us-0.22-lgraph
+./build/vox --model vosk-model-en-us-0.22-lgraph
 ```
 
 ## Available Models
@@ -84,70 +84,70 @@ A cross-platform speech-to-text server built in Go with HTTP API and MCP (Model 
 ### Model Management
 ```bash
 # List available models
-./build/diaz --list-models
+./build/vox --list-models
 
 # List downloaded models
-./build/diaz --list-downloaded
+./build/vox --list-downloaded
 
 # Download a specific model
-./build/diaz --download-model vosk-model-en-us-0.22-lgraph
+./build/vox --download-model vosk-model-en-us-0.22-lgraph
 
 # Set default model
-./build/diaz --set-default vosk-model-en-us-0.22-lgraph
+./build/vox --set-default vosk-model-en-us-0.22-lgraph
 ```
 
 ### Running Transcription
 ```bash
 # Use default/configured model
-./build/diaz
+./build/vox
 
 # Interactive model selection
-./build/diaz --select-model
+./build/vox --select-model
 
 # Use specific model
-./build/diaz --model vosk-model-small-en-us-0.15
+./build/vox --model vosk-model-small-en-us-0.15
 
 # Auto-download if missing (no prompt)
-./build/diaz --auto-download
+./build/vox --auto-download
 ```
 
 ### Output Formats
 ```bash
 # Default console output (interactive)
-./build/diaz
+./build/vox
 
 # JSON output to stdout
-./build/diaz --format json
+./build/vox --format json
 
 # JSON output to file
-./build/diaz --format json --output transcription.json
+./build/vox --format json --output transcription.json
 
 # Plain text output to file
-./build/diaz --format text --output transcription.txt
+./build/vox --format text --output transcription.txt
 ```
 
 ### Voice Activity Detection
 ```bash
 # Enable VAD for automatic pause detection (enabled by default)
-./build/diaz --vad
+./build/vox --vad
 
 # Enable VAD with custom sensitivity (lower=more sensitive)
-./build/diaz --vad --vad-threshold 0.005
+./build/vox --vad --vad-threshold 0.005
 
 # Set silence delay (seconds after speech before finalizing)
-./build/diaz --vad --vad-silence-delay 10.0
+./build/vox --vad --vad-silence-delay 10.0
 
 # VAD with JSON output
-./build/diaz --vad --format json --output transcription.json
+./build/vox --vad --format json --output transcription.json
 ```
 
 ### Utility
 ```bash
 # Show version
-./build/diaz --version
+./build/vox --version
 
 # Show help
-./build/diaz --help
+./build/vox --help
 ```
 
 ## Server Mode (Coming Soon)
@@ -156,10 +156,10 @@ A cross-platform speech-to-text server built in Go with HTTP API and MCP (Model 
 ### MCP Server
 ```bash
 # Start MCP server (stdio transport for local AI assistants)
-./build/diaz --mode mcp
+./build/vox --mode mcp
 
 # MCP server with HTTP transport
-./build/diaz --mode mcp --transport http --port 8081
+./build/vox --mode mcp --transport http --port 8081
 ```
 
 
@@ -168,8 +168,8 @@ A cross-platform speech-to-text server built in Go with HTTP API and MCP (Model 
 ### Current Implementation (CLI Mode)
 
 ```
-diaz/
-├── cmd/diaz/
+vox/
+├── cmd/vox/
 │   └── main.go                    # CLI interface, model selection
 ├── internal/
 │   ├── audio/
@@ -250,7 +250,7 @@ diaz/
 
 ### 🚧 Phase 4: Server Architecture (IN PROGRESS - CURRENT PRIORITY)
 
-**Goal**: Transform Diaz into a server-based STT service with MCP interfaces
+**Goal**: Transform Vox into a server-based STT service with MCP interfaces
 
 **Priority 1: MCP Server Implementation**
 - [ ] MCP protocol integration (Model Context Protocol)

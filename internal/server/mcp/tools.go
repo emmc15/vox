@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/emmett/diaz/internal/audio"
-	"github.com/emmett/diaz/internal/models"
+	"github.com/emmett/vox/internal/audio"
+	"github.com/emmett/vox/internal/models"
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 

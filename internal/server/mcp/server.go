@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/emmett/diaz/internal/stt"
+	"github.com/emmett/vox/internal/stt"
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 

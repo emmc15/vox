@@ -1,4 +1,4 @@
-module github.com/emmett/diaz
+module github.com/emmett/vox
 
 go 1.23.6
 

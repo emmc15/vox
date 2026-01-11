@@ -7,8 +7,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/emmett/diaz/internal/models"
-	"github.com/emmett/diaz/internal/server/mcp"
+	"github.com/emmett/vox/internal/models"
+	"github.com/emmett/vox/internal/server/mcp"
 )
 
 // MCPHandler handles MCP server operations
@@ -60,7 +60,7 @@ func (h *MCPHandler) Run() error {
 	}
 
 	if !downloaded {
-		return fmt.Errorf("model '%s' not found. Please download it first using:\n  diaz --download-model %s", selectedModel, selectedModel)
+		return fmt.Errorf("model '%s' not found. Please download it first using:\n  vox --download-model %s", selectedModel, selectedModel)
 	}
 
 	// Get model path
@@ -72,10 +72,10 @@ func (h *MCPHandler) Run() error {
 	fmt.Fprintf(os.Stderr, "Using model: %s\n", selectedModel)
 	fmt.Fprintf(os.Stderr, "Model path: %s\n\n", modelPath)
 
-	// Get absolute path to diaz binary
+	// Get absolute path to vox binary
 	execPath, err := os.Executable()
 	if err != nil {
-		execPath = "./build/diaz"
+		execPath = "./build/vox"
 	}
 
 	// Print MCP client configuration
@@ -89,7 +89,7 @@ func (h *MCPHandler) Run() error {
 
 	clientConfig := MCPClientConfig{
 		MCPServers: map[string]MCPServerConfig{
-			"diaz-stt": {
+			"vox-stt": {
 				Command: execPath,
 				Args:    []string{"--mode", "mcp", "--model", selectedModel},
 			},
@@ -122,7 +122,7 @@ func (h *MCPHandler) Run() error {
 
 	// Create MCP server
 	serverConfig := mcp.Config{
-		ServerName:      "diaz-mcp",
+		ServerName:      "vox-mcp",
 		ServerVersion:   h.version,
 		ModelPath:       modelPath,
 		DefaultModel:    selectedModel,

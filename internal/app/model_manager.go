@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/emmett/diaz/internal/models"
+	"github.com/emmett/vox/internal/models"
 )
 
 type ModelManager struct{}
@@ -35,7 +35,7 @@ func (m *ModelManager) ListModels() error {
 	}
 
 	fmt.Println("To download a model, use:")
-	fmt.Println("  diaz --download-model <model-name>")
+	fmt.Println("  vox --download-model <model-name>")
 	return nil
 }
 
@@ -48,8 +48,8 @@ func (m *ModelManager) ListDownloaded() error {
 	if len(downloaded) == 0 {
 		fmt.Println("No models downloaded yet.")
 		fmt.Println()
-		fmt.Println("Use 'diaz --list-models' to see available models")
-		fmt.Println("Use 'diaz --download-model <name>' to download a model")
+		fmt.Println("Use 'vox --list-models' to see available models")
+		fmt.Println("Use 'vox --download-model <name>' to download a model")
 		return nil
 	}
 
@@ -70,7 +70,7 @@ func (m *ModelManager) ListDownloaded() error {
 	}
 	fmt.Println()
 	fmt.Println("To use a model, run:")
-	fmt.Println("  diaz --model <model-name>")
+	fmt.Println("  vox --model <model-name>")
 	return nil
 }
 
@@ -79,7 +79,7 @@ func (m *ModelManager) Download(name string) error {
 	if model == nil {
 		fmt.Fprintf(os.Stderr, "Error: Unknown model '%s'\n", name)
 		fmt.Println()
-		fmt.Println("Use 'diaz --list-models' to see available models")
+		fmt.Println("Use 'vox --list-models' to see available models")
 		return fmt.Errorf("unknown model: %s", name)
 	}
 
@@ -118,7 +118,7 @@ func (m *ModelManager) SetDefault(name string) error {
 	if model == nil {
 		fmt.Fprintf(os.Stderr, "Error: Unknown model '%s'\n", name)
 		fmt.Println()
-		fmt.Println("Use 'diaz --list-models' to see available models")
+		fmt.Println("Use 'vox --list-models' to see available models")
 		return fmt.Errorf("unknown model: %s", name)
 	}
 
@@ -135,7 +135,7 @@ func (m *ModelManager) SetDefault(name string) error {
 	downloaded, _ := models.IsModelDownloaded(name)
 	if !downloaded {
 		fmt.Println("Note: This model is not yet downloaded.")
-		fmt.Printf("Run 'diaz --download-model %s' to download it.\n", name)
+		fmt.Printf("Run 'vox --download-model %s' to download it.\n", name)
 	}
 	return nil
 }
@@ -256,8 +256,8 @@ func (m *ModelManager) EnsureModel(name string, autoDownload bool) (string, erro
 	if response != "y" && response != "yes" {
 		fmt.Println()
 		fmt.Println("You can download models using:")
-		fmt.Println("  diaz --list-models          # List available models")
-		fmt.Println("  diaz --download-model <name> # Download a specific model")
+		fmt.Println("  vox --list-models          # List available models")
+		fmt.Println("  vox --download-model <name> # Download a specific model")
 		return "", fmt.Errorf("model download declined")
 	}
 

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/emmett/diaz/internal/app"
+	"github.com/emmett/vox/internal/app"
 )
 
 var (
@@ -27,7 +27,7 @@ func main() {
 	flag.Parse()
 
 	if *showVersion {
-		fmt.Printf("Diaz MCP v%s\n", Version)
+		fmt.Printf("Vox MCP v%s\n", Version)
 		fmt.Printf("  Commit:  %s\n", GitCommit)
 		fmt.Printf("  Branch:  %s\n", GitBranch)
 		fmt.Printf("  Built:   %s\n", BuildTime)

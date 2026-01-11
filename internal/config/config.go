@@ -89,17 +89,17 @@ func Load(path string) (*Config, error) {
 }
 
 // LoadWithFallback attempts to load configuration from multiple locations
-// Priority: explicit path > ~/.diazrc > /etc/diaz/config.yaml
+// Priority: explicit path > ~/.voxrc > /etc/vox/config.yaml
 func LoadWithFallback(explicitPath string) (*Config, error) {
 	// If explicit path is provided, use it
 	if explicitPath != "" {
 		return Load(explicitPath)
 	}
 
-	// Try user config (~/.diazrc)
+	// Try user config (~/.voxrc)
 	homeDir, err := os.UserHomeDir()
 	if err == nil {
-		userConfigPath := filepath.Join(homeDir, ".diazrc")
+		userConfigPath := filepath.Join(homeDir, ".voxrc")
 		if _, err := os.Stat(userConfigPath); err == nil {
 			cfg, err := Load(userConfigPath)
 			if err == nil {
@@ -108,8 +108,8 @@ func LoadWithFallback(explicitPath string) (*Config, error) {
 		}
 	}
 
-	// Try system config (/etc/diaz/config.yaml)
-	systemConfigPath := "/etc/diaz/config.yaml"
+	// Try system config (/etc/vox/config.yaml)
+	systemConfigPath := "/etc/vox/config.yaml"
 	if _, err := os.Stat(systemConfigPath); err == nil {
 		cfg, err := Load(systemConfigPath)
 		if err == nil {

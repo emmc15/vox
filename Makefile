@@ -1,9 +1,9 @@
-# Diaz - Speech-to-Text Application Makefile
+# Vox - Speech-to-Text Application Makefile
 # Builds self-contained binaries for multiple platforms
 
 # Application names
-APP_CLI := diaz-cli
-APP_MCP := diaz-mcp
+APP_CLI := vox-cli
+APP_MCP := vox-mcp
 VERSION := 0.1.0
 
 # Directories
@@ -55,7 +55,7 @@ all: clean deps build
 
 ## help: Display this help message
 help:
-	@echo "$(COLOR_BOLD)Diaz - Speech-to-Text Application$(COLOR_RESET)"
+	@echo "$(COLOR_BOLD)Vox - Speech-to-Text Application$(COLOR_RESET)"
 	@echo ""
 	@echo "$(COLOR_BOLD)Available targets:$(COLOR_RESET)"
 	@grep -E '^## ' $(MAKEFILE_LIST) | sed 's/##/$(COLOR_GREEN)/' | column -t -s ':' | sed 's/$$/$(COLOR_RESET)/'
