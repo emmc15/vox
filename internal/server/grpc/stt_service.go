@@ -6,11 +6,15 @@ import (
 	"sync"
 	"time"
 
+	"google.golang.org/grpc"
+
+	voxpb "github.com/emmett/vox/api/proto"
 	"github.com/emmett/vox/internal/stt"
 )
 
 // STTService implements the gRPC STT service
 type STTService struct {
+	voxpb.UnimplementedSTTServer
 	engine stt.Engine
 	mu     sync.Mutex
 }
@@ -20,42 +24,18 @@ func NewSTTService(engine stt.Engine) *STTService {
 	return &STTService{engine: engine}
 }
 
-// AudioChunk represents incoming audio data
-type AudioChunk struct {
-	Data       []byte
-	SampleRate int32
-	Channels   int32
-}
-
-// TranscriptResult represents a transcription result
-type TranscriptResult struct {
-	Text        string
-	IsFinal     bool
-	Confidence  float32
-	TimestampMs int64
-}
-
-// TranscribeStream is the streaming interface for bidirectional transcription
-type TranscribeStream interface {
-	Send(*TranscriptResult) error
-	Recv() (*AudioChunk, error)
-	Context() context.Context
-}
-
 // Transcribe handles bidirectional streaming transcription
-// This will be updated to use generated proto types once protoc runs
-func (s *STTService) Transcribe(stream TranscribeStream) error {
+func (s *STTService) Transcribe(stream grpc.BidiStreamingServer[voxpb.AudioChunk, voxpb.TranscriptResult]) error {
 	ctx := stream.Context()
 
 	for {
 		select {
 		case <-ctx.Done():
-			// Send final result before closing
 			s.mu.Lock()
 			finalResult, err := s.engine.FinalResult()
 			s.mu.Unlock()
 			if err == nil && finalResult.Text != "" {
-				stream.Send(&TranscriptResult{
+				stream.Send(&voxpb.TranscriptResult{
 					Text:        finalResult.Text,
 					IsFinal:     true,
 					Confidence:  float32(finalResult.Confidence),
@@ -67,12 +47,11 @@ func (s *STTService) Transcribe(stream TranscribeStream) error {
 		default:
 			chunk, err := stream.Recv()
 			if err == io.EOF {
-				// Client closed stream, send final result
 				s.mu.Lock()
 				finalResult, err := s.engine.FinalResult()
 				s.mu.Unlock()
 				if err == nil && finalResult.Text != "" {
-					stream.Send(&TranscriptResult{
+					stream.Send(&voxpb.TranscriptResult{
 						Text:        finalResult.Text,
 						IsFinal:     true,
 						Confidence:  float32(finalResult.Confidence),
@@ -94,7 +73,7 @@ func (s *STTService) Transcribe(stream TranscribeStream) error {
 			}
 
 			if result != nil && result.Text != "" {
-				stream.Send(&TranscriptResult{
+				stream.Send(&voxpb.TranscriptResult{
 					Text:        result.Text,
 					IsFinal:     !result.Partial,
 					Confidence:  float32(result.Confidence),
@@ -103,4 +82,20 @@ func (s *STTService) Transcribe(stream TranscribeStream) error {
 			}
 		}
 	}
+}
+
+// ListModels returns available STT models
+func (s *STTService) ListModels(ctx context.Context, req *voxpb.ListModelsRequest) (*voxpb.ListModelsResponse, error) {
+	// TODO: Implement actual model listing from models package
+	return &voxpb.ListModelsResponse{
+		Models: []*voxpb.Model{
+			{
+				Name:        "vosk-model-small-en-us-0.15",
+				Description: "Small English model for general transcription",
+				SizeBytes:   40000000,
+				Downloaded:  true,
+			},
+		},
+		DefaultModel: "vosk-model-small-en-us-0.15",
+	}, nil
 }

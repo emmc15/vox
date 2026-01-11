@@ -5,7 +5,9 @@ import (
 	"net"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 
+	voxpb "github.com/emmett/vox/api/proto"
 	"github.com/emmett/vox/internal/stt"
 )
 
@@ -39,7 +41,10 @@ func NewServer(cfg Config) (*Server, error) {
 
 	// Register services
 	sttService := NewSTTService(engine)
-	RegisterSTTServer(s.grpcServer, sttService)
+	voxpb.RegisterSTTServer(s.grpcServer, sttService)
+
+	// Enable reflection for grpcurl
+	reflection.Register(s.grpcServer)
 
 	return s, nil
 }
@@ -59,9 +64,4 @@ func (s *Server) Start() error {
 func (s *Server) Stop() {
 	s.grpcServer.GracefulStop()
 	s.sttEngine.Close()
-}
-
-// RegisterSTTServer is a placeholder until proto is generated
-func RegisterSTTServer(s *grpc.Server, srv *STTService) {
-	// Will be replaced by generated code: voxpb.RegisterSTTServer(s, srv)
 }
