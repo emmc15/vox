@@ -52,6 +52,9 @@ func (v *VoskEngine) Initialize(config Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to load model from %s: %w", config.ModelPath, err)
 	}
+	if model == nil {
+		return fmt.Errorf("failed to load model from %s: model returned nil", config.ModelPath)
+	}
 	v.model = model
 
 	// Create recognizer
