@@ -1,5 +1,4 @@
 # vox
-make computer shit talk
 
 A cross-platform speech-to-text server built in Go with HTTP API and MCP (Model Context Protocol) support. Features local offline transcription using Vosk with real-time streaming capabilities. Can run as a CLI tool, HTTP server, or MCP server.
 
