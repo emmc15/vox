@@ -68,6 +68,19 @@ func (m *MalgoCapturer) Start(ctx context.Context) error {
 	// Data callback - called when audio data is available
 	var dataCallback malgo.DeviceCallbacks
 	dataCallback.Data = func(pOutputSample, pInputSamples []byte, framecount uint32) {
+		// Recover from panic if channel is closed during shutdown race
+		defer func() {
+			recover()
+		}()
+
+		// Check if still running before sending to channel
+		m.mu.RLock()
+		running := m.running
+		m.mu.RUnlock()
+		if !running {
+			return
+		}
+
 		// Copy the input samples to avoid data races
 		dataCopy := make([]byte, len(pInputSamples))
 		copy(dataCopy, pInputSamples)
@@ -139,8 +152,12 @@ func (m *MalgoCapturer) Stop() error {
 	m.running = false
 	m.mu.Unlock()
 
-	// Signal stop
-	close(m.stopChan)
+	// Signal stop (only once)
+	select {
+	case <-m.stopChan:
+	default:
+		close(m.stopChan)
+	}
 
 	// Stop the device
 	if m.device != nil {

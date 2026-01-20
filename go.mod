@@ -9,6 +9,7 @@ require github.com/gen2brain/malgo v0.11.24
 require github.com/alphacep/vosk-api/go v0.3.50
 
 require (
+	golang.design/x/hotkey v0.4.1
 	google.golang.org/grpc v1.78.0
 	google.golang.org/protobuf v1.36.11
 	gopkg.in/yaml.v3 v3.0.1

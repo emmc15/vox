@@ -33,6 +33,12 @@ type Config struct {
 		Device string `yaml:"device"`
 	} `yaml:"audio"`
 
+	// Push-to-talk settings
+	PushToTalk struct {
+		Enabled bool   `yaml:"enabled"`
+		Hotkey  string `yaml:"hotkey"`
+	} `yaml:"push_to_talk"`
+
 	// Server settings (for future use)
 	Server struct {
 		Mode      string `yaml:"mode"`
@@ -62,6 +68,10 @@ func DefaultConfig() *Config {
 
 	// Audio defaults
 	cfg.Audio.Device = ""
+
+	// Push-to-talk defaults
+	cfg.PushToTalk.Enabled = false
+	cfg.PushToTalk.Hotkey = "ctrl+shift+space"
 
 	// Server defaults
 	cfg.Server.Mode = "cli"
