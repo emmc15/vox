@@ -33,6 +33,8 @@ var (
 	listDevices     = flag.Bool("list-devices", false, "List all available audio input devices")
 	showVersion     = flag.Bool("version", false, "Show version information")
 	autoDownload    = flag.Bool("auto-download", false, "Automatically download default model if not found (no prompt)")
+	pttMode         = flag.Bool("ptt", false, "Enable push-to-talk mode")
+	pttHotkey       = flag.String("ptt-hotkey", "ctrl+shift+space", "Hotkey combo for push-to-talk")
 )
 
 func main() {
@@ -134,6 +136,12 @@ func applyConfigDefaults(cfg *config.Config) {
 	if !flagsSet["device"] && cfg.Audio.Device != "" {
 		*audioDevice = cfg.Audio.Device
 	}
+	if !flagsSet["ptt"] && cfg.PushToTalk.Enabled {
+		*pttMode = cfg.PushToTalk.Enabled
+	}
+	if !flagsSet["ptt-hotkey"] && cfg.PushToTalk.Hotkey != "" {
+		*pttHotkey = cfg.PushToTalk.Hotkey
+	}
 }
 
 func run() error {
@@ -156,6 +164,15 @@ func run() error {
 		VADSilenceDelay: *vadSilenceDelay,
 		AudioDevice:     *audioDevice,
 		AutoDownload:    *autoDownload,
+	}
+
+	if *pttMode {
+		pttConfig := app.PTTConfig{
+			TranscriberConfig: config,
+			Hotkey:            *pttHotkey,
+		}
+		ptt := app.NewPTTTranscriber(pttConfig)
+		return ptt.Run()
 	}
 
 	transcriber := app.NewTranscriber(config)
