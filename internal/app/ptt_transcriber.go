@@ -76,7 +76,11 @@ func (p *PTTTranscriber) Run() error {
 	if err := p.engine.Initialize(sttConfig); err != nil {
 		return fmt.Errorf("failed to initialize STT engine: %w", err)
 	}
-	defer p.engine.Close()
+	defer func() {
+
+		p.engine.Close()
+
+	}()
 
 	// Set up audio config (stored for recreating capturer each session)
 	p.audioConfig = getAudioConfigForModel(selectedModel)
@@ -109,7 +113,11 @@ func (p *PTTTranscriber) Run() error {
 	if err := p.hotkeyMgr.Start(ctx, p.config.Hotkey); err != nil {
 		return fmt.Errorf("failed to start hotkey listener: %w", err)
 	}
-	defer p.hotkeyMgr.Stop()
+	defer func() {
+
+		p.hotkeyMgr.Stop()
+
+	}()
 
 	fmt.Printf("\nPush-to-talk mode. Press %s to toggle recording.\n", p.config.Hotkey)
 	fmt.Println("Press Ctrl+C to exit.")
@@ -120,11 +128,12 @@ func (p *PTTTranscriber) Run() error {
 	for {
 		select {
 		case <-ctx.Done():
+
 			p.recording = false
-			p.wg.Wait()
 			if capturerRunning {
 				p.capturer.Stop()
 			}
+			p.wg.Wait()
 			return nil
 
 		case recording := <-toggleChan:
@@ -156,12 +165,11 @@ func (p *PTTTranscriber) Run() error {
 			} else {
 				// Stop recording and transcribe
 				p.recording = false
-				p.wg.Wait() // wait for collectSamples to exit
 				if capturerRunning {
 					p.capturer.Stop()
 					capturerRunning = false
 				}
-
+				p.wg.Wait() // wait for collectSamples to exit
 				fmt.Println("[Stopped - transcribing...]")
 
 				// Transcribe collected audio
@@ -188,9 +196,11 @@ func (p *PTTTranscriber) Run() error {
 // collectSamples collects audio samples while recording
 func (p *PTTTranscriber) collectSamples(ctx context.Context) {
 	defer p.wg.Done()
+
 	for {
 		select {
 		case <-ctx.Done():
+
 			return
 		case sample, ok := <-p.capturer.Samples():
 			if !ok || !p.recording {

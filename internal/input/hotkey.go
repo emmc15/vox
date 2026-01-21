@@ -43,7 +43,10 @@ func (h *HotkeyManager) Start(ctx context.Context, hotkeyStr string) error {
 	ctx, h.cancel = context.WithCancel(ctx)
 
 	go func() {
-		defer close(h.done)
+		defer func() {
+			h.hk.Unregister()
+			close(h.done)
+		}()
 		for {
 			select {
 			case <-ctx.Done():
@@ -72,11 +75,7 @@ func (h *HotkeyManager) Stop() {
 	if h.cancel != nil {
 		h.cancel()
 	}
-	// Unregister hotkey
-	if h.hk != nil {
-		h.hk.Unregister()
-	}
-	// Wait briefly for goroutine to exit
+	// Wait briefly for goroutine to exit (it handles Unregister)
 	if h.done != nil {
 		select {
 		case <-h.done:
